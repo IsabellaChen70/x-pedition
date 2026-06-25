@@ -1,0 +1,44 @@
+{
+  "name": "x-pedition",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "validate:content": "node scripts/validate-content.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preview": "vite preview",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
+    "deploy:firebase": "npm run build && firebase deploy --only hosting,firestore:rules"
+  },
+  "dependencies": {
+    "@fontsource-variable/fredoka": "^5.2.10",
+    "@fontsource-variable/hanken-grotesk": "^5.2.8",
+    "@radix-ui/react-dialog": "^1.1.17",
+    "canvas-confetti": "^1.9.4",
+    "firebase": "^12.15.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.29.0",
+    "@tailwindcss/vite": "^4.1.10",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.5.2",
+    "eslint": "^9.29.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.2.0",
+    "tailwindcss": "^4.1.10",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.34.1",
+    "vite": "^6.3.5",
+    "vitest": "^4.1.9"
+  }
+}

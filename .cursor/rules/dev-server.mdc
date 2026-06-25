@@ -1,0 +1,25 @@
+---
+description: How to run the Vite dev server without stacking stale instances
+alwaysApply: true
+---
+
+# Dev server: one clean instance, no stacking
+
+This project's dev server is Vite (`npm run dev`), default port `5173`.
+
+Before starting a dev server, always check what is already running:
+
+1. Skim the terminals folder metadata for an active `npm run dev`.
+2. Check listeners: `lsof -nP -iTCP -sTCP:LISTEN | rg "517"` (Vite falls back to 5174, 5175, ... when a port is taken, which is how stale servers pile up).
+
+Then:
+
+- If one healthy dev server is already running, reuse it and give the user its URL. Do not start another.
+- If you find stale or duplicate servers (multiple Vite instances across 5173/5174/5175, or any running for hours), kill them and start a single fresh server on 5173.
+- Never leave more than one dev server running. Stacked servers serve old code on different ports and make it unclear which URL is current.
+- After starting, smoke-check before reporting it ready: `curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/` should return 200.
+
+Notes:
+
+- Killing a process is destructive and needs approval, so do it deliberately, not as a guess.
+- This is macOS: `ls --time-style` and other GNU-only flags do not work. Use BSD-compatible commands or the dedicated tools.

@@ -1,0 +1,241 @@
+{
+  "id": "lesson-03",
+  "title": "Finding Unknown Values",
+  "description": "Solve one-step equations by undoing the operation while keeping both sides equal.",
+  "phases": {
+    "scaffolded": [
+      {
+        "id": "concept-1",
+        "type": "concept",
+        "title": "Undo to set x free",
+        "body": "To find x, get it all alone on one pan. The trick: whatever has been done to x, do the **opposite**, and do it to **both** sides so the scale stays balanced. Tap through the toolkit.",
+        "interaction": {
+          "type": "reveal",
+          "revealLabel": "Show me more",
+          "steps": [
+            {
+              "text": "Say x + 5 balances 12. A +5 is riding along with x, so undo it.",
+              "visual": {
+                "type": "scale",
+                "config": {
+                  "left": [
+                    { "kind": "unknown", "label": "x" },
+                    { "kind": "weight", "value": 5 }
+                  ],
+                  "right": [{ "kind": "weight", "value": 12 }]
+                }
+              }
+            },
+            {
+              "text": "The opposite of adding 5 is subtracting 5. Take 5 off both pans and x is alone."
+            },
+            {
+              "text": "Same idea for every move: added → subtract, subtracted → add, multiplied → divide. Always do it to both sides."
+            }
+          ]
+        },
+        "continueLabel": "Let's practice"
+      },
+      {
+        "id": "s1",
+        "type": "mc",
+        "prompt": "x + 4 = 9. What should you do first to find x?",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "weight", "value": 4 }
+            ],
+            "right": [{ "kind": "weight", "value": 9 }]
+          }
+        },
+        "options": ["Add 4 to both sides", "Remove 4 from both sides", "Divide both sides by 4", "Change x to 9"],
+        "correctIndex": 1,
+        "hint": "A 4 is being added to x. What's the opposite of adding? Do that same move to both sides.",
+        "feedback": {
+          "correct": "Yes! Taking 4 off both sides is the move, it leaves x all by itself.",
+          "incorrect": [
+            "Think about the opposite of +4.",
+            "To keep balance, do the same undo step to both sides."
+          ]
+        },
+        "explanation": {
+          "title": "Undo addition",
+          "body": "Addition is undone by subtraction, and doing that opposite move to both sides keeps the equation true."
+        }
+      },
+      {
+        "id": "concept-2",
+        "type": "concept",
+        "title": "Subtract from both sides",
+        "body": "Here's the undo-by-subtracting move in action. Take the extra weight off **both** pans and watch x come out on its own.",
+        "interaction": {
+          "type": "scale_demo",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "weight", "value": 6 }
+            ],
+            "right": [{ "kind": "weight", "value": 14 }]
+          },
+          "value": 6,
+          "actionLabel": "Take 6 lb off both pans",
+          "resultCaption": "The right pan goes from 14 to 8 and the extra 6 leaves the left, so x balances 8 by itself, x = 8 here."
+        },
+        "continueLabel": "Let's practice"
+      },
+      {
+        "id": "s2",
+        "type": "scale_interactive",
+        "prompt": "x plus 4 pounds balances 9 pounds. Change the scale to get x alone, keep both pans balanced!",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "weight", "value": 4 }
+            ],
+            "right": [{ "kind": "weight", "value": 9 }]
+          }
+        },
+        "validation": {
+          "action": "remove_from_both",
+          "value": 4,
+          "expectedUnknown": 5
+        },
+        "followUpMc": {
+          "prompt": "What is x?",
+          "options": ["4", "5", "9", "13"],
+          "correctIndex": 1,
+          "feedback": {
+            "correct": "There it is, once x stands alone, it balances 5. x = 5!",
+            "incorrect": [
+              "After removing 4 from 9, what remains?",
+              "x is alone now, so read the remaining weight."
+            ]
+          }
+        },
+        "hint": "Whatever you take off the left tray, take the same off the right so the scale stays fair.",
+        "feedback": {
+          "correct": "Balanced the whole way, and solved, x = 5. Great undoing!",
+          "incorrect": [
+            "Only one side changed. Keep the scale balanced.",
+            "Remove 4 from both sides before choosing x."
+          ]
+        },
+        "explanation": {
+          "title": "Keep both sides equal",
+          "body": "Whatever you do to one side must happen to the other, and that balance is what makes the move valid."
+        }
+      },
+      {
+        "id": "s3",
+        "type": "mc",
+        "prompt": "x - 2 = 6 means x became 6 after 2 was taken away. What is x?",
+        "visual": { "type": "none" },
+        "options": ["4", "6", "8", "12"],
+        "correctIndex": 2,
+        "hint": "Something was taken away from x to land on 6. To get back to x, do the opposite.",
+        "feedback": {
+          "correct": "Yes! You undid the subtraction by adding it back, so x = 8. Nice thinking.",
+          "incorrect": [
+            "Undo subtracting 2 by adding 2.",
+            "What number becomes 6 after you take away 2?"
+          ]
+        },
+        "explanation": {
+          "title": "Undo subtraction",
+          "body": "Subtraction is undone by addition, so reversing the step traces back to the original amount."
+        }
+      },
+      {
+        "id": "s4",
+        "type": "mc",
+        "prompt": "3x = 12 means three matching x blocks make 12. What is x?",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "unknown", "label": "x" },
+              { "kind": "unknown", "label": "x" }
+            ],
+            "right": [{ "kind": "weight", "value": 12 }]
+          }
+        },
+        "options": ["3", "4", "9", "12"],
+        "correctIndex": 1,
+        "hint": "The three x's are identical, so they share the 12 evenly. How big is one share?",
+        "feedback": {
+          "correct": "Exactly! Three equal x's share 12, so each x is 4. Well shared.",
+          "incorrect": [
+            "Three x blocks share the 12 equally.",
+            "What number times 3 equals 12?"
+          ]
+        },
+        "explanation": {
+          "title": "Undo multiplication",
+          "body": "Multiplying means equal copies, so dividing the total among those copies recovers one of them."
+        }
+      }
+    ],
+    "mastery": [
+      {
+        "id": "m1",
+        "type": "mc",
+        "prompt": "x + 2 = 8. x equals...",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "weight", "value": 2 }
+            ],
+            "right": [{ "kind": "weight", "value": 8 }]
+          }
+        },
+        "options": ["4", "6", "8", "10"],
+        "correctIndex": 1,
+        "feedback": {
+          "correct": "Yes, undo the +2 and x = 6.",
+          "incorrect": ["Undo +2 by subtracting 2 from 8."]
+        }
+      },
+      {
+        "id": "m2",
+        "type": "mc",
+        "prompt": "x - 3 = 5. x equals...",
+        "visual": { "type": "none" },
+        "options": ["2", "5", "8", "15"],
+        "correctIndex": 2,
+        "feedback": {
+          "correct": "Right, add the 3 back and x = 8.",
+          "incorrect": ["Undo -3 by adding 3."]
+        }
+      },
+      {
+        "id": "m3",
+        "type": "mc",
+        "prompt": "3x = 18. x equals...",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "unknown", "label": "x" },
+              { "kind": "unknown", "label": "x" }
+            ],
+            "right": [{ "kind": "weight", "value": 18 }]
+          }
+        },
+        "options": ["3", "6", "15", "18"],
+        "correctIndex": 1,
+        "feedback": {
+          "correct": "Exactly, split 18 across 3 equal x's, so each is 6.",
+          "incorrect": ["Three x blocks share 18 equally."]
+        }
+      }
+    ]
+  }
+}

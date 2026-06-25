@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Hanken Grotesk Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Fredoka Variable", "Hanken Grotesk Variable", system-ui, sans-serif;
+
+  /* Brand ramp is a warm terracotta (accents, links, progress, nodes). */
+  --color-brand-50: #fcf2ec;
+  --color-brand-100: #f7ddcb;
+  --color-brand-200: #efbf9f;
+  --color-brand-300: #e49b6e;
+  --color-brand-400: #d67a45;
+  --color-brand-500: #c45f2c;
+  --color-brand-600: #a94c22;
+  --color-brand-700: #8a3e1f;
+  --color-brand-800: #6f341f;
+  --color-brand-900: #5c2e1e;
+  --color-brand-950: #32160f;
+
+  /* Parchment surfaces (page + cards). */
+  --color-parchment-50: #fdf8ec;
+  --color-parchment-100: #f7eed6;
+  --color-parchment-200: #efdfb9;
+  --color-parchment-300: #e3cd96;
+
+  /* Treasure gold (primary buttons, treasure, highlights). */
+  --color-gold-300: #ffda7a;
+  --color-gold-400: #f6c34c;
+  --color-gold-500: #e7a52a;
+  --color-gold-600: #c9871a;
+  --color-gold-700: #a06713;
+
+  --color-ink: #322619;
+  --color-sunset: #ef7d3a;
+
+  --color-surface: #f7eed6;
+  --color-muted: #6b7c88;
+  --animate-streak-pop: streak-pop 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-overlay-in: overlay-in 0.16s ease-out;
+  --animate-dialog-in: dialog-in 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-lift-off: lift-off 0.9s ease-out forwards;
+  --animate-flag-bob: flag-bob 2.4s ease-in-out infinite;
+  --animate-chest-bob: chest-bob 2.8s ease-in-out infinite;
+  --animate-sparkle-twinkle: sparkle-twinkle 2.2s ease-in-out infinite;
+}
+
+@keyframes streak-pop {
+  0% { transform: scale(0.6); }
+  45% { transform: scale(1.25); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Gentle bob + tilt so the current-stop flag feels alive (motion-safe only). */
+@keyframes flag-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(-4deg); }
+}
+
+/* Gentle bob so the unlocked treasure invites a tap (motion-safe only). */
+@keyframes chest-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(-1.5deg); }
+}
+
+/* Soft twinkle for the treasure-chest sparkle (motion-safe only). */
+@keyframes sparkle-twinkle {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Balance-scale beam: slowly tip and settle so the cause-and-effect is clear. */
+.scale-beam {
+  transform-box: view-box;
+  transform-origin: 180px 130px;
+  transition: transform 0.95s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Quick jiggle to draw the eye when weights are removed from both pans. */
+@keyframes scale-wobble {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-4deg); }
+  50% { transform: rotate(3deg); }
+  75% { transform: rotate(-1.5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.scale-wobble {
+  animation: scale-wobble 0.7s ease-in-out;
+}
+
+/* A removed weight chip floating up off a pan to show the subtraction. */
+@keyframes lift-off {
+  0% { opacity: 0; transform: translate(-50%, 8px) scale(0.9); }
+  20% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  70% { opacity: 1; transform: translate(-50%, -34px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -52px) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scale-beam {
+    transition: none;
+  }
+  .scale-wobble {
+    animation: none;
+  }
+}
+
+html {
+  font-size: 16px;
+  /* Stop the rubber-band scroll past the top/bottom of the page. */
+  overscroll-behavior-y: none;
+}
+
+body {
+  @apply min-h-dvh font-sans text-ink antialiased;
+  background-color: var(--color-parchment-100);
+  /* A warm "lit from above" parchment wash so content sits on a surface. */
+  background-image: radial-gradient(120% 90% at 50% -10%, #fbf4e2 0%, #f1e6c6 55%, #e7d9b4 100%);
+  background-attachment: fixed;
+  overscroll-behavior-y: none;
+}
+
+/* Big headings and the wordmark use the rounded display font. */
+h1,
+h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Align digits in the scale totals, weights, streak, and progress counts. */
+.nums {
+  font-variant-numeric: tabular-nums;
+}
+
+#root {
+  @apply min-h-dvh;
+}

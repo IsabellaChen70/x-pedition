@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PRD — Algebra Learn-by-Doing App</title>
+  <style>
+    @page { margin: 0.5in; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 9pt;
+      line-height: 1.3;
+      color: #111;
+      max-width: 7.5in;
+      margin: 0 auto;
+      padding: 0.4in;
+    }
+    h1 { font-size: 14pt; border-bottom: 2px solid #222; padding-bottom: 0.15em; page-break-after: avoid; }
+    h2 { font-size: 11pt; margin-top: 0.8em; border-bottom: 1px solid #ccc; padding-bottom: 0.1em; page-break-after: avoid; }
+    h3 { font-size: 10pt; margin-top: 0.6em; page-break-after: avoid; }
+    h4 { font-size: 11.5pt; margin-top: 0.9em; page-break-after: avoid; }
+    p, li { orphans: 3; widows: 3; }
+    pre {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 0.75em;
+      font-size: 9pt;
+      white-space: pre-wrap;
+      word-break: break-word;
+      page-break-inside: avoid;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, monospace;
+      font-size: 9pt;
+      background: #f2f2f2;
+      padding: 0.1em 0.25em;
+      border-radius: 3px;
+    }
+    pre code { background: none; padding: 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5pt;
+      margin: 0.75em 0;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.35em 0.5em;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f0f0f0; font-weight: 600; }
+    hr { border: none; border-top: 1px solid #ddd; margin: 1.5em 0; }
+    ul, ol { padding-left: 1.4em; }
+    a { color: #1155cc; text-decoration: none; }
+  </style>
+</head>
+<body>
+<h1>Product Requirements Document (PRD)</h1>
+
+<p><strong>Product:</strong> <strong>Unknown</strong> — algebra learn-by-doing app  </p>
+<p><strong>Version:</strong> 1.0 — Phase 1 MVP · <strong>Updated:</strong> June 22, 2026  </p>
+<p><strong>Assignment:</strong> Build Brilliant — A Learn-by-Doing App for One Subject  </p>
+<p><strong>Phase scope:</strong> Phase 1 only. No AI. No Phase 2/3 features.</p>
+
+<hr />
+
+<h2>1. Problem statement</h2>
+
+<p>Most learning apps show Maya a video, then a quiz. She memorizes steps, gets a red X when wrong, and still does not understand *why* <code>x + 3 = 7</code> works. In class she is afraid to ask questions. At home she needs something that lets her <strong>try, fail safely, and figure it out herself</strong> — in five to ten minutes, on whatever device is nearby.</p>
+
+<p>This product <strong>is a Brilliant clone in the ways that matter for learning</strong> — but only the key aspects, scoped to one persona. It is not feature-parity with the full Brilliant platform.</p>
+
+<hr />
+
+<h2>2. Product vision</h2>
+
+<p>A responsive web app where Maya signs in, works through a short linear course of interactive algebra lessons, manipulates balance scales and tiles, gets instant kind feedback when she is wrong, passes a no-hint mastery check, and sees her streak grow — on her phone after school or on a laptop at the kitchen table. The app teaches without AI and proves the core experience works before anything smarter is added.</p>
+
+<h3>2.1 Relationship to Brilliant</h3>
+
+<p>The assignment asks us to model the product on Brilliant. <strong>Technically, this is a Brilliant clone — but deliberately limited to the core mechanics that make Brilliant work for a learner like Maya</strong>, not a copy of the entire platform.</p>
+
+<table><thead><tr>
+<th>Brilliant aspect we clone</th>
+<th>How we implement it</th>
+</tr></thead><tbody>
+<tr>
+<td>Learn by doing</td>
+<td>Interactive problems, not video lectures</td>
+</tr>
+<tr>
+<td>Action before theory</td>
+<td>Shapes on scales before introducing <code>x</code></td>
+</tr>
+<tr>
+<td>Balance-scale algebra</td>
+<td>Primary visual metaphor (Solving Equations course)</td>
+</tr>
+<tr>
+<td>Scaffolded → mastery rhythm</td>
+<td>Hand-holding questions + explanation pages, then 3 no-hint mastery Q</td>
+</tr>
+<tr>
+<td>Instant, specific feedback</td>
+<td>Pre-written copy on every answer</td>
+</tr>
+<tr>
+<td>Visual / manipulable lessons</td>
+<td>Scale drag/tap, tile combine (≥1 interactive per lesson)</td>
+</tr>
+<tr>
+<td>Structured content model</td>
+<td>Lessons as JSON steps, not HTML blobs</td>
+</tr>
+<tr>
+<td>Course path</td>
+<td>Linear unlock through 5–6 lessons in one subject</td>
+</tr>
+<tr>
+<td>Habit loop</td>
+<td>Daily streak, continue CTA, lesson-complete moment</td>
+</tr>
+</tbody></table>
+
+<table><thead><tr>
+<th>Brilliant aspect we do <strong>not</strong> clone</th>
+<th>Why</th>
+</tr></thead><tbody>
+<tr>
+<td>Full course library (50+ lessons, 1000+ problems)</td>
+<td>Depth for Maya, not breadth</td>
+</tr>
+<tr>
+<td>Koji AI tutor</td>
+<td>Phase 2; banned in MVP</td>
+</tr>
+<tr>
+<td>Leagues, XP, levels, badges</td>
+<td>Streak + completion is enough for her</td>
+</tr>
+<tr>
+<td>Multiple subjects and algebra "lenses"</td>
+<td>One subject, one path</td>
+</tr>
+<tr>
+<td>Practice sets, review sets, spaced repetition</td>
+<td>Phase 3</td>
+</tr>
+<tr>
+<td>Premium tiers, educator dashboard, offline</td>
+<td>Wrong scope for MVP</td>
+</tr>
+</tbody></table>
+
+<p><strong>Positioning:</strong> A focused Brilliant-style experience for early algebra — built for Maya, not a platform rebuild.</p>
+
+<hr />
+
+<h2>3. Domain</h2>
+
+<h3>3.1 Subject</h3>
+
+<p><strong>Algebra</strong> — early solving equations and expressions, using a balance-scale and tile mental model.</p>
+
+<h3>3.2 Course</h3>
+
+<p><strong>Title:</strong> Solving Equations (Intro) · <strong>Audience:</strong> Maya only. All copy, difficulty, and tone tuned for her.</p>
+
+<h3>3.3 In scope (mathematical)</h3>
+
+<table><thead><tr>
+<th>Topic</th>
+<th>Examples</th>
+</tr></thead><tbody>
+<tr>
+<td>Finding unknowns (concrete)</td>
+<td>Shapes on scales before <code>x</code></td>
+</tr>
+<tr>
+<td>Variables</td>
+<td><code>x</code> as a name for an unknown</td>
+</tr>
+<tr>
+<td>One-step equations</td>
+<td><code>x + 3 = 7</code>, <code>x − 2 = 6</code>, <code>10 = x + 4</code></td>
+</tr>
+<tr>
+<td>Combining like terms</td>
+<td><code>2x + x = 3x</code>, then solve</td>
+</tr>
+<tr>
+<td>Writing expressions</td>
+<td>"5 more than a number" → <code>x + 5</code></td>
+</tr>
+<tr>
+<td>Two unknowns (optional L6)</td>
+<td><code>x + y = 10</code>, <code>x = 4</code> — no coefficients</td>
+</tr>
+</tbody></table>
+
+<p><strong>Constraints:</strong> whole numbers only; coefficients ≤ 3; no negatives, fractions, distributive property, graphing, or two-step equations.</p>
+
+<h3>3.4 Out of scope (mathematical)</h3>
+
+<p>Two-step equations, inequalities, distributive property, factoring, quadratics, graphing, word-problem systems, anything requiring a calculator.</p>
+
+<hr />
+
+<h2>4. User persona: Maya</h2>
+
+<table><thead><tr>
+<th>Attribute</th>
+<th>Detail</th>
+</tr></thead><tbody>
+<tr>
+<td>Age / grade</td>
+<td>12–13, 7th grade</td>
+</tr>
+<tr>
+<td>Context</td>
+<td>First algebra unit; has seen <code>x</code> but does not trust it</td>
+</tr>
+<tr>
+<td>Mindset</td>
+<td>Anxious about being wrong; avoids asking for help</td>
+</tr>
+<tr>
+<td>Learning style</td>
+<td>Needs to *do* something before a rule makes sense</td>
+</tr>
+<tr>
+<td>Session length</td>
+<td>5–10 minutes</td>
+</tr>
+<tr>
+<td>Devices</td>
+<td>Phone after school; laptop/desktop at home</td>
+</tr>
+<tr>
+<td>Goal</td>
+<td>Understand what <code>x</code> means; solve basic one-step equations</td>
+</tr>
+<tr>
+<td>Success signal</td>
+<td>Wrong → hint → fix herself → finish lesson → return tomorrow</td>
+</tr>
+</tbody></table>
+
+<h3>Design principles</h3>
+
+<ol>
+<li><strong>Concrete before abstract</strong> — shapes on scales before the symbol <code>x</code>.</li>
+<li><strong>Warm, never condescending</strong> — no "obvious!", no jargon-first explanations.</li>
+<li><strong>Short and completable</strong> — each lesson fits one sitting; clear "you're done!" moment.</li>
+<li><strong>Safe to fail</strong> — mastery allows 2/3 pass so one mistake does not destroy confidence.</li>
+<li><strong>Predictable rhythm</strong> — every lesson: scaffolded practice, then mastery check.</li>
+<li><strong>Device-agnostic</strong> — phone and computer; layout adapts; touch and mouse both work.</li>
+</ol>
+
+<h3>Not designing for</h3>
+
+<p>Exam crammers, teachers managing classrooms, multi-subject learners, users who want video lectures or AI chat tutors.</p>
+
+<hr />
+
+<h2>5. MVP definition</h2>
+
+<h3>5.1 One-sentence MVP</h3>
+
+<p>Maya can sign in on <strong>mobile or desktop</strong>, complete <strong>5 interactive algebra lessons</strong> (each with scaffolded practice and a 3-question mastery check), manipulate scales/tiles, get instant written feedback, resume mid-lesson, see her streak and next lesson — deployed publicly with <strong>zero AI</strong>.</p>
+
+<h3>5.2 Assignment alignment (Phase 1 gate)</h3>
+
+<table><thead><tr>
+<th>Requirement</th>
+<th>Implementation</th>
+</tr></thead><tbody>
+<tr>
+<td>Chosen subject + persona</td>
+<td>Algebra + Maya (stated in README)</td>
+</tr>
+<tr>
+<td>Interactive lesson(s)</td>
+<td>5 lessons (depth in one subject)</td>
+</tr>
+<tr>
+<td>Direct manipulation</td>
+<td>≥1 interactive step per lesson (scale/tiles)</td>
+</tr>
+<tr>
+<td>Visual responds in real time</td>
+<td>Scale/tiles update on interaction</td>
+</tr>
+<tr>
+<td>Instant, specific feedback</td>
+<td>Pre-written copy; UI response &lt;100ms</td>
+</tr>
+<tr>
+<td>Progress persists</td>
+<td>Firestore; resume mid-lesson and mid-phase</td>
+</tr>
+<tr>
+<td>Auth + names</td>
+<td>Firebase Auth + display name</td>
+</tr>
+<tr>
+<td>Mobile + desktop</td>
+<td>Responsive web app (§9)</td>
+</tr>
+<tr>
+<td>Deployed &amp; public</td>
+<td>Vercel + Firebase</td>
+</tr>
+<tr>
+<td>No AI</td>
+<td>No model calls, no generated content</td>
+</tr>
+</tbody></table>
+
+<h3>5.3 Lesson structure (locked)</h3>
+
+<p>Every lesson has two phases:</p>
+
+<p><strong>Scaffolded (hand-holding):</strong> 3–5 questions · hints available · explanation page after wrong answers · visual always on screen · ≥1 interactive question (drag/tap) · mostly multiple choice.</p>
+
+<p><strong>Mastery check (no hand-holding):</strong> 3 questions · no hints · no explanation pages until after submit · pass at <strong>≥2/3</strong> · on fail, retry missed questions only.</p>
+
+<h3>5.4 Course map</h3>
+
+<table><thead><tr>
+<th>#</th>
+<th>Lesson ID</th>
+<th>Title</th>
+<th><code>x</code> introduced?</th>
+</tr></thead><tbody>
+<tr>
+<td>1</td>
+<td><code>lesson-01</code></td>
+<td>Finding Unknowns</td>
+<td>No (shapes only)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>lesson-02</code></td>
+<td>Variables</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>lesson-03</code></td>
+<td>Finding Unknown Values</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>lesson-04</code></td>
+<td>Combining and Coefficients</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>lesson-05</code></td>
+<td>Writing Expressions</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>lesson-06</code></td>
+<td>Two Unknowns *(optional)*</td>
+<td>Yes</td>
+</tr>
+</tbody></table>
+
+<p>Linear unlock: complete Lesson *N* to open Lesson *N+1*. Ship Lessons 1–5 for Wednesday gate; add Lesson 6 if ahead of schedule.</p>
+
+<h3>5.5 Habit loop (required)</h3>
+
+<table><thead><tr>
+<th>Feature</th>
+<th>Purpose for Maya</th>
+</tr></thead><tbody>
+<tr>
+<td>Daily streak</td>
+<td>Low-pressure "I practiced today" motivation</td>
+</tr>
+<tr>
+<td>Welcome back / Continue</td>
+<td>Reduces re-entry friction</td>
+</tr>
+<tr>
+<td>Lesson complete screen</td>
+<td>Satisfying finish; shows next lesson title</td>
+</tr>
+<tr>
+<td>Course path</td>
+<td>Clear progress without overwhelming dashboard</td>
+</tr>
+</tbody></table>
+
+<p><strong>Not included:</strong> leagues, XP, levels, badges, push notifications, leaderboards.</p>
+
+<h3>5.6 Definition of done</h3>
+
+<ol>
+<li>Create account on phone; complete Lesson 1 with wrong answers and recovery; leave on step 3; return and resume.</li>
+<li>Repeat same flow on desktop at a different viewport width.</li>
+<li>Pass mastery 2/3; unlock Lesson 2; streak increments.</li>
+<li>Confirm no AI endpoints in codebase or network calls.</li>
+</ol>
+
+<hr />
+
+<h2>6. User stories</h2>
+
+<h3>6.1 In scope</h3>
+
+<table><thead><tr>
+<th>ID</th>
+<th>User story</th>
+<th>Acceptance</th>
+</tr></thead><tbody>
+<tr>
+<td>US-01</td>
+<td>Sign up with email or Google</td>
+<td>Auth works on mobile and desktop</td>
+</tr>
+<tr>
+<td>US-02</td>
+<td>See display name on home</td>
+<td>Name shown after sign-in</td>
+</tr>
+<tr>
+<td>US-03</td>
+<td>See course path (locked / in progress / done)</td>
+<td>Linear list; no clutter</td>
+</tr>
+<tr>
+<td>US-04</td>
+<td>Tap Continue to resume exact step</td>
+<td>Phase + step index restored</td>
+</tr>
+<tr>
+<td>US-05</td>
+<td>Scaffolded hints when stuck</td>
+<td>Hint button in scaffolded only</td>
+</tr>
+<tr>
+<td>US-06</td>
+<td>Explanation when scaffolded answer wrong</td>
+<td>2–4 sentences + visual; warm tone</td>
+</tr>
+<tr>
+<td>US-07</td>
+<td>Drag/tap scale or tiles (≥1 per lesson)</td>
+<td>Touch and mouse both work</td>
+</tr>
+<tr>
+<td>US-08</td>
+<td>Visual updates immediately on interaction</td>
+<td>Scale rebalances in real time</td>
+</tr>
+<tr>
+<td>US-09</td>
+<td>Instant feedback on submit</td>
+<td>UI updates in &lt;100ms</td>
+</tr>
+<tr>
+<td>US-10</td>
+<td>3-question mastery check, no hints</td>
+<td>Pass at 2/3</td>
+</tr>
+<tr>
+<td>US-11</td>
+<td>Retry only missed mastery questions on fail</td>
+<td>No full mastery restart required</td>
+</tr>
+<tr>
+<td>US-12</td>
+<td>Unlock next lesson on mastery pass</td>
+<td>Next lesson becomes tappable</td>
+</tr>
+<tr>
+<td>US-13</td>
+<td>See daily streak on home</td>
+<td>Updates on lesson activity</td>
+</tr>
+<tr>
+<td>US-14</td>
+<td>Lesson-complete celebration + next step</td>
+<td>"Up next: …" shown</td>
+</tr>
+<tr>
+<td>US-15</td>
+<td>Use app on phone in portrait</td>
+<td>No horizontal scroll; 48px tap targets</td>
+</tr>
+<tr>
+<td>US-16</td>
+<td>Use app on laptop/desktop</td>
+<td>Layout expands; mouse + keyboard work</td>
+</tr>
+<tr>
+<td>US-17</td>
+<td>Add lessons via JSON without rewriting UI</td>
+<td>Content-driven renderer</td>
+</tr>
+</tbody></table>
+
+<h3>6.2 Out of scope — and why</h3>
+
+<table><thead><tr>
+<th>Story</th>
+<th>Reason</th>
+</tr></thead><tbody>
+<tr>
+<td>AI tutor / generated problems</td>
+<td>Phase 2; banned in MVP</td>
+</tr>
+<tr>
+<td>Spaced repetition / review sets</td>
+<td>Phase 3</td>
+</tr>
+<tr>
+<td>Leagues, XP, levels</td>
+<td>Streak + completion sufficient for Maya</td>
+</tr>
+<tr>
+<td>Skip ahead to any lesson</td>
+<td>Linear unlock protects scaffolding</td>
+</tr>
+<tr>
+<td>Multiple subjects</td>
+<td>Assignment: depth in one subject</td>
+</tr>
+<tr>
+<td>Video lessons</td>
+<td>Opposite of product thesis</td>
+</tr>
+<tr>
+<td>Offline mode</td>
+<td>Not required; adds sync complexity</td>
+</tr>
+<tr>
+<td>Teacher dashboard</td>
+<td>Wrong persona</td>
+</tr>
+<tr>
+<td>Premium / payments</td>
+<td>Not required</td>
+</tr>
+<tr>
+<td>Push notifications</td>
+<td>In-app streak enough for MVP</td>
+</tr>
+<tr>
+<td>Profile photo, settings page</td>
+<td>Maya does not need them</td>
+</tr>
+</tbody></table>
+
+<hr />
+
+<h2>7. Functional requirements</h2>
+
+<h3>7.1 Authentication</h3>
+
+<p>Firebase Auth: email/password and Google. Required <strong>display name</strong> on sign-up. Session persists across restarts. Sign out from home (no settings page).</p>
+
+<h3>7.2 Home screen</h3>
+
+<p>Display name, current streak, course path (5–6 lessons). Each card: title + status (locked / in progress / completed). Primary CTA: <strong>Continue</strong> or <strong>Start</strong>. No global nav beyond home + sign out.</p>
+
+<h3>7.3 Lesson player</h3>
+
+<p>Load lesson JSON by ID. Render step from <code>currentPhase</code> + <code>currentStepIndex</code> in Firestore. Step types: <code>mc</code>, <code>scale_interactive</code>, <code>tile_combine</code>, <code>explanation</code>. Progress indicator (e.g. "Question 2 of 4"). Scaffolded: hint visible; explanation interstitial on wrong. Mastery: no hints; brief feedback; summary at end. Auto-save on every step completion.</p>
+
+<h3>7.4 Feedback engine</h3>
+
+<p>All feedback in lesson JSON (pre-written). Client-side validation. On submit: immediate UI change then feedback copy. Scaffolded wrong → explanation interstitial before advancing. Mastery wrong → brief feedback; summarize at end.</p>
+
+<h3>7.5 Progress &amp; unlock</h3>
+
+<p>Statuses: <code>locked</code> | <code>not_started</code> | <code>in_progress</code> | <code>completed</code>. Lesson 1 unlocked by default. Lesson *N+1* unlocks when Lesson *N* <code>masteryPassed === true</code>. Resume restores <code>lessonId</code>, <code>currentPhase</code>, <code>currentStepIndex</code>.</p>
+
+<h3>7.6 Streak logic</h3>
+
+<p>Practice day = any step completed or lesson finished. Update <code>lastActiveDate</code> (YYYY-MM-DD, local timezone). Same day: no change. Yesterday: <code>currentStreak += 1</code>. Gap ≥2 days: reset to 1. First activity: streak = 1. Streak 0 copy: "Start your streak today!"</p>
+
+<h3>7.7 Mastery pass/fail</h3>
+
+<p>3 questions; pass at <strong>2/3</strong>. On fail: encouraging copy; retry <strong>only missed questions</strong>. Unlimited mastery retries for MVP. On pass: mark complete, unlock next, lesson-complete screen, update streak.</p>
+
+<hr />
+
+<h2>8. Edge cases &amp; error handling</h2>
+
+<h3>8.1 Auth</h3>
+
+<table><thead><tr>
+<th>Case</th>
+<th>Behavior</th>
+</tr></thead><tbody>
+<tr>
+<td>Email already exists</td>
+<td>"An account with this email already exists. Try signing in."</td>
+</tr>
+<tr>
+<td>Wrong password</td>
+<td>"That password doesn't match. Try again."</td>
+</tr>
+<tr>
+<td>Session expires mid-lesson</td>
+<td>Redirect to sign-in; resume from Firestore after re-auth</td>
+</tr>
+<tr>
+<td>Tab closed mid-step</td>
+<td>Last completed step saved; resume accordingly</td>
+</tr>
+<tr>
+<td>Empty display name</td>
+<td>Block until entered (1–30 chars)</td>
+</tr>
+<tr>
+<td>Google sign-in, no name</td>
+<td>Prompt for display name</td>
+</tr>
+</tbody></table>
+
+<h3>8.2 Progress &amp; sync</h3>
+
+<table><thead><tr>
+<th>Case</th>
+<th>Behavior</th>
+</tr></thead><tbody>
+<tr>
+<td>Same account, two devices</td>
+<td>Firestore source of truth; latest <code>updatedAt</code> wins</td>
+</tr>
+<tr>
+<td>Offline</td>
+<td>Banner: "You're offline. Progress saves when you're back." Retry writes; block new lesson if no cached content</td>
+</tr>
+<tr>
+<td>Firestore write fails</td>
+<td>Retry once; keep local state until saved</td>
+</tr>
+<tr>
+<td>Lesson JSON removed</td>
+<td>Friendly error; redirect home</td>
+</tr>
+<tr>
+<td>Complete on device A, open B</td>
+<td>Home shows completed; no duplicate</td>
+</tr>
+</tbody></table>
+
+<h3>8.3 Lesson player</h3>
+
+<table><thead><tr>
+<th>Case</th>
+<th>Behavior</th>
+</tr></thead><tbody>
+<tr>
+<td>Submit with no selection</td>
+<td>Submit disabled</td>
+</tr>
+<tr>
+<td>Double-tap submit</td>
+<td>Debounce; ignore second</td>
+</tr>
+<tr>
+<td>Wrong in scaffolded</td>
+<td>Explanation interstitial; must dismiss</td>
+</tr>
+<tr>
+<td>Wrong in mastery</td>
+<td>Brief feedback; advance to next Q</td>
+</tr>
+<tr>
+<td>Mastery 1/3</td>
+<td>Retry 2 missed questions</td>
+</tr>
+<tr>
+<td>Failed retry</td>
+<td>Unlimited retries (MVP)</td>
+</tr>
+<tr>
+<td>Leave mid-mastery</td>
+<td>Save phase + step; resume same question</td>
+</tr>
+<tr>
+<td>Incomplete drag interaction</td>
+<td>Submit disabled until valid state</td>
+</tr>
+<tr>
+<td>Browser back</td>
+<td>Confirm leave or auto-save + home</td>
+</tr>
+</tbody></table>
+
+<h3>8.4 Streak &amp; responsive</h3>
+
+<p>Streak: first day = 1; multiple lessons/day = one increment; broken streak → "Welcome back! Let's start a new streak." Timezone: use browser local date (acceptable for MVP).</p>
+
+<p>Responsive: 320px phones scale visual down without overflow; 1920px+ desktop centers content; rotate mid-lesson preserves step state; hybrid touch/mouse via pointer events; iOS Safari uses <code>dvh</code>/safe-area so CTA not hidden.</p>
+
+<h3>8.5 Content</h3>
+
+<p>Invalid JSON fails build. Missing feedback copy → fallback: "Not quite. Read the explanation and try the next one."</p>
+
+<hr />
+
+<h2>9. Responsive design &amp; devices</h2>
+
+<p>One <strong>responsive web app</strong> (not native). Single codebase for all devices.</p>
+
+<table><thead><tr>
+<th>Device</th>
+<th>Viewport</th>
+<th>Input</th>
+</tr></thead><tbody>
+<tr>
+<td>Phone</td>
+<td>320–480px portrait</td>
+<td>Touch</td>
+</tr>
+<tr>
+<td>Tablet</td>
+<td>481–1024px</td>
+<td>Touch</td>
+</tr>
+<tr>
+<td>Desktop</td>
+<td>1025px+</td>
+<td>Mouse + keyboard</td>
+</tr>
+</tbody></table>
+
+<table><thead><tr>
+<th>Element</th>
+<th>Mobile</th>
+<th>Desktop</th>
+</tr></thead><tbody>
+<tr>
+<td>Course path</td>
+<td>Single column, full width</td>
+<td>Centered, max ~720px</td>
+</tr>
+<tr>
+<td>Lesson player</td>
+<td>Visual above prompt</td>
+<td>Stacked or side-by-side, max ~800px</td>
+</tr>
+<tr>
+<td>Scale/tile visual</td>
+<td>Full width, min 200px</td>
+<td>Larger, max ~500px centered</td>
+</tr>
+<tr>
+<td>MC options</td>
+<td>Stacked buttons, min 48px</td>
+<td>Stacked or 2-column</td>
+</tr>
+<tr>
+<td>Typography</td>
+<td>16px base (prevents iOS zoom)</td>
+<td>16–18px base</td>
+</tr>
+</tbody></table>
+
+<p>Interaction parity: scale drag via pointer events (touch + mouse); no hover-only affordances; Tab + Enter for MC on desktop; no horizontal scroll; resize/rotate preserves lesson state.</p>
+
+<p><strong>Maya does not need:</strong> native app install, separate mobile/desktop codebases, desktop-only shortcuts beyond accessibility.</p>
+
+<hr />
+
+<h2>10. Non-functional requirements</h2>
+
+<table><thead><tr>
+<th>Requirement</th>
+<th>Target</th>
+</tr></thead><tbody>
+<tr>
+<td>Feedback UI latency</td>
+<td>&lt;100ms from submit to visual change</td>
+</tr>
+<tr>
+<td>Lesson load</td>
+<td>&lt;2s to first interaction on 4G</td>
+</tr>
+<tr>
+<td>Animation</td>
+<td>60fps goal on scale/tile updates</td>
+</tr>
+<tr>
+<td>Concurrent users</td>
+<td>Firebase default scaling</td>
+</tr>
+<tr>
+<td>Security</td>
+<td>Firestore: users read/write own data only</td>
+</tr>
+<tr>
+<td>Accessibility</td>
+<td>Semantic HTML, focus states, contrast, keyboard MC</td>
+</tr>
+<tr>
+<td>AI</td>
+<td>Zero model API calls in Phase 1</td>
+</tr>
+<tr>
+<td>Browsers</td>
+<td>Latest Chrome, Safari, Firefox, Edge</td>
+</tr>
+</tbody></table>
+
+<hr />
+
+<h2>11. Tech stack</h2>
+
+<h3>Required</h3>
+
+<table><thead><tr>
+<th>Layer</th>
+<th>Technology</th>
+</tr></thead><tbody>
+<tr>
+<td>Frontend</td>
+<td><strong>React</strong> (Vite)</td>
+</tr>
+<tr>
+<td>Auth</td>
+<td><strong>Firebase Authentication</strong></td>
+</tr>
+<tr>
+<td>Database</td>
+<td><strong>Cloud Firestore</strong></td>
+</tr>
+<tr>
+<td>Hosting</td>
+<td><strong>Vercel</strong></td>
+</tr>
+</tbody></table>
+
+<h3>Recommended</h3>
+
+<table><thead><tr>
+<th>Layer</th>
+<th>Technology</th>
+</tr></thead><tbody>
+<tr>
+<td>Styling</td>
+<td>Tailwind CSS</td>
+</tr>
+<tr>
+<td>Routing</td>
+<td>React Router</td>
+</tr>
+<tr>
+<td>State</td>
+<td>React Context + hooks</td>
+</tr>
+<tr>
+<td>Visuals</td>
+<td>SVG + React</td>
+</tr>
+<tr>
+<td>Content</td>
+<td>JSON in <code>/content</code></td>
+</tr>
+</tbody></table>
+
+<h3>Not in stack (Phase 1)</h3>
+
+<p>OpenAI / Anthropic / any LLM · Supabase · custom Node server · Canvas/WebGL · native wrappers (Capacitor, React Native).</p>
+
+<hr />
+
+<h2>12. Data schema</h2>
+
+<h3>12.1 Storage overview</h3>
+
+<table><thead><tr>
+<th>Data</th>
+<th>Where</th>
+<th>Mutable?</th>
+</tr></thead><tbody>
+<tr>
+<td>Lessons, feedback, explanations</td>
+<td>JSON in <code>/content</code></td>
+<td>Deploy to update</td>
+</tr>
+<tr>
+<td>User identity</td>
+<td>Firebase Auth</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Profile, streak</td>
+<td>Firestore <code>users/{uid}</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Lesson progress</td>
+<td>Firestore <code>users/{uid}/progress/{lessonId}</code></td>
+<td>Yes</td>
+</tr>
+</tbody></table>
+
+<h3>12.2 <code>users/{userId}</code></h3>
+
+<pre><code>
+displayName: string       // required
+email: string
+createdAt: Timestamp
+lastActiveDate: string   // "2026-06-22" local date
+currentStreak: number    // default 0
+updatedAt: Timestamp
+</code></pre>
+
+<h3>12.3 <code>users/{userId}/progress/{lessonId}</code></h3>
+
+<p>Document ID = <code>lessonId</code> (e.g. <code>lesson-01</code>).</p>
+
+<pre><code>
+lessonId: string
+status: "not_started" | "in_progress" | "completed"
+currentPhase: "scaffolded" | "mastery"
+currentStepIndex: number          // 0-based within phase
+scaffoldedCompleted: boolean
+masteryCorrectCount: number
+masteryMissedStepIds: string[]
+masteryPassed: boolean
+startedAt: Timestamp | null
+completedAt: Timestamp | null
+updatedAt: Timestamp
+</code></pre>
+
+<h3>12.4 Firestore security rules</h3>
+
+<pre><code>
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null &amp;&amp; request.auth.uid == userId;
+      match /progress/{lessonId} {
+        allow read, write: if request.auth != null &amp;&amp; request.auth.uid == userId;
+      }
+    }
+  }
+}
+</code></pre>
+
+<h3>12.5 Not stored</h3>
+
+<p>Individual step attempt history · AI conversation logs · analytics events (skip for MVP unless needed for demo).</p>
+
+<hr />
+
+<h2>13. Information architecture</h2>
+
+<table><thead><tr>
+<th>Route</th>
+<th>Screen</th>
+</tr></thead><tbody>
+<tr>
+<td><code>/auth</code></td>
+<td>Sign in / sign up + display name</td>
+</tr>
+<tr>
+<td><code>/</code></td>
+<td>Home: name, streak, path, Continue</td>
+</tr>
+<tr>
+<td><code>/lesson/:lessonId</code></td>
+<td>Lesson player</td>
+</tr>
+<tr>
+<td>*(overlay)*</td>
+<td>Lesson complete: celebration + "Up next"</td>
+</tr>
+</tbody></table>
+
+<p>4 screens total. No settings, profile edit, or about page.</p>
+
+<hr />
+
+<h2>14. Lesson content model</h2>
+
+<h3>File structure</h3>
+
+<pre><code>
+content/
+  course.json
+  lessons/
+    lesson-01.json … lesson-05.json
+</code></pre>
+
+<h3><code>course.json</code></h3>
+
+<pre><code>
+{
+  "id": "solving-equations-intro",
+  "title": "Solving Equations",
+  "lessonOrder": ["lesson-01", "lesson-02", "lesson-03", "lesson-04", "lesson-05"]
+}
+</code></pre>
+
+<h3>Step schema (per question)</h3>
+
+<table><thead><tr>
+<th>Field</th>
+<th>Purpose</th>
+</tr></thead><tbody>
+<tr>
+<td><code>id</code></td>
+<td>Unique step ID</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td><code>mc</code> \</td>
+<td><code>scale_interactive</code> \</td>
+<td><code>tile_combine</code> \</td>
+<td><code>explanation</code></td>
+</tr>
+<tr>
+<td><code>prompt</code></td>
+<td>Question text</td>
+</tr>
+<tr>
+<td><code>visual</code></td>
+<td>Scale/tile config object</td>
+</tr>
+<tr>
+<td><code>options</code> / <code>correctIndex</code></td>
+<td>MC answers</td>
+</tr>
+<tr>
+<td><code>validation</code></td>
+<td>Rules for interactive steps</td>
+</tr>
+<tr>
+<td><code>hint</code></td>
+<td>Scaffolded only</td>
+</tr>
+<tr>
+<td><code>feedback</code></td>
+<td><code>{ correct, incorrect[] }</code></td>
+</tr>
+<tr>
+<td><code>explanation</code></td>
+<td><code>{ title, body, visual }</code> — scaffolded wrong answers</td>
+</tr>
+</tbody></table>
+
+<h3>Example step (abbreviated)</h3>
+
+<pre><code>
+{
+  "id": "s2",
+  "type": "scale_interactive",
+  "prompt": "Remove 1 block from each side to find the unknown.",
+  "visual": { "type": "scale", "config": { "left": ["unknown", "1"], "right": ["7"] } },
+  "validation": { "action": "remove_from_both", "value": 1, "expectedUnknown": 6 },
+  "hint": "Whatever you remove from one side, remove from the other too.",
+  "feedback": {
+    "correct": "The scale stays balanced!",
+    "incorrect": ["You changed only one side — both sides must stay equal."]
+  }
+}
+</code></pre>
+
+<hr />
+
+<h2>15. Course outline (per lesson)</h2>
+
+<p><strong>Lesson 1 — Finding Unknowns:</strong> Equal means equal; shapes on scales. No <code>x</code>. Scaffolded: 4 Q (2 MC, 1 scale interactive, 1 MC). Mastery: 3 MC.</p>
+
+<p><strong>Lesson 2 — Variables:</strong> <code>x</code> names an unknown. Scaffolded: 4 Q (introduce <code>x</code>, evaluate <code>x + 3</code>, interactive label match, MC). Mastery: 3 Q.</p>
+
+<p><strong>Lesson 3 — Finding Unknown Values:</strong> One-step equations via balance reasoning. Scaffolded: 4 Q (<code>x + 3 = 7</code> interactive, <code>x − 2 = 6</code>, <code>10 = x + 4</code>, mistake explanation). Mastery: 3 mixed +/−.</p>
+
+<p><strong>Lesson 4 — Combining and Coefficients:</strong> <code>2x + x = 3x</code>; combine then solve; coeffs ≤ 3. Scaffolded: 4 Q. Mastery: 3 combine-and-solve.</p>
+
+<p><strong>Lesson 5 — Writing Expressions:</strong> Words → algebra; watch "less than" order trap. Scaffolded: 4 Q. Mastery: 3 word → expression MC.</p>
+
+<p><strong>Lesson 6 (optional) — Two Unknowns:</strong> Substitute when one known; no coefficients. Scaffolded: 3–4 Q. Mastery: 3 Q.</p>
+
+<hr />
+
+<h2>16. Out of scope</h2>
+
+<p><strong>Phase 1:</strong> AI · leagues/XP/levels · push notifications · offline · educator tools · premium · multiple courses · profile editing · step analytics.</p>
+
+<p><strong>Phase 2 (later):</strong> AI hints, problem generation, adaptive path — document in Brainlift.</p>
+
+<p><strong>Phase 3 (later):</strong> Spaced repetition, interleaving, advanced mastery — document in Brainlift.</p>
+
+<hr />
+
+<h2>17. Success criteria &amp; test scenarios</h2>
+
+<table><thead><tr>
+<th>#</th>
+<th>Scenario</th>
+<th>Pass</th>
+</tr></thead><tbody>
+<tr>
+<td>1</td>
+<td>Lesson 1 E2E with wrong answers + recovery</td>
+<td>Hints/explanations help Maya finish</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Manipulate interactive; visual responds live</td>
+<td>Scale/tiles update on drag/tap</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Leave mid-lesson; return</td>
+<td>Same step; streak persists</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Finish lesson</td>
+<td>"Up next: Variables" (or next title)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Phone 375px</td>
+<td>No broken layout</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Desktop 1280px</td>
+<td>Mouse interactions work</td>
+</tr>
+</tbody></table>
+
+<p><strong>Additional acceptance:</strong> sign up → streak=1 · mastery 2/3 unlocks next · cross-device sync · offline banner · no AI in DevTools · all 5 lessons playable.</p>
+
+<hr />
+
+<h2>18. Open questions &amp; build order</h2>
+
+<table><thead><tr>
+<th>Question</th>
+<th>Recommendation</th>
+</tr></thead><tbody>
+<tr>
+<td>Product name</td>
+<td><strong>Unknown</strong> (decided)</td>
+</tr>
+<tr>
+<td>Vite vs Next.js</td>
+<td>Vite (decided)</td>
+</tr>
+<tr>
+<td>Lesson 6 in MVP?</td>
+<td>Ship 5; add 6 if ahead (decided)</td>
+</tr>
+<tr>
+<td>Email + Google?</td>
+<td>Both (decided)</td>
+</tr>
+</tbody></table>
+
+<p><strong>Build order:</strong> scaffold → Lesson 1 JSON + scale component → renderer + feedback → auth → Firestore progress → home/path/streak → Lessons 2–5 → edge cases + responsive polish → deploy.</p>
+
+<p><strong>README must state:</strong> <strong>Unknown</strong> · Algebra · Maya persona · setup guide · architecture (React + Firebase + JSON) · deployed link.</p>
+
+<hr />
+
+<p>*Phase 1 only. Clone Brilliant's core learn-by-doing mechanics; skip everything Maya doesn't need. If a feature does not help her learn algebra, persist progress, or come back tomorrow — it does not ship.*</p>
+
+</body>
+</html>

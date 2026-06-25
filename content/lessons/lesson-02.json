@@ -1,0 +1,248 @@
+{
+  "id": "lesson-02",
+  "title": "Variables",
+  "description": "Meet x as a name for an unknown amount you already know how to find.",
+  "phases": {
+    "scaffolded": [
+      {
+        "id": "concept-1",
+        "type": "concept",
+        "title": "Meet x",
+        "body": "You already know how to find a mystery weight on a balance scale. In algebra we just give that mystery a name: **x**. Tap through to see that a name changes nothing about the puzzle.",
+        "interaction": {
+          "type": "reveal",
+          "revealLabel": "Show me more",
+          "steps": [
+            {
+              "text": "Here a single mystery block sits alone and balances 7 pounds. Let's call the block x.",
+              "visual": {
+                "type": "scale",
+                "config": {
+                  "left": [{ "kind": "unknown", "label": "x" }],
+                  "right": [{ "kind": "weight", "value": 7 }]
+                }
+              }
+            },
+            {
+              "text": "Because x sits all by itself, it must weigh exactly what's on the other pan."
+            },
+            {
+              "text": "So here x = 7. The letter is just a nickname for the amount you're hunting for. Your turn!"
+            }
+          ]
+        },
+        "continueLabel": "Let's practice"
+      },
+      {
+        "id": "s1",
+        "type": "mc",
+        "prompt": "In algebra, **x** can stand for a mystery amount. If x balances 6 pounds, what is x?",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [{ "kind": "unknown", "label": "x" }],
+            "right": [{ "kind": "weight", "value": 6 }]
+          }
+        },
+        "options": ["1 lb", "3 lb", "6 lb", "12 lb"],
+        "correctIndex": 2,
+        "hint": "x is just a nickname for the mystery block. Since it sits all alone, whatever balances it IS its value.",
+        "feedback": {
+          "correct": "Exactly! x sits all alone, so it's worth whatever balances it, 6 pounds. You just read your first variable.",
+          "incorrect": [
+            "Not quite. The x block is alone, so it equals the weight across from it.",
+            "Look at the right side of the balanced scale."
+          ]
+        },
+        "explanation": {
+          "title": "x is a name",
+          "body": "A variable is just a name for an unknown amount, nothing more, so a lone x is worth exactly what sits across from it."
+        }
+      },
+      {
+        "id": "concept-2",
+        "type": "concept",
+        "title": "When x has extra weight",
+        "body": "Often x isn't alone, it has a known weight sitting with it. To uncover x, take that same weight off **both** pans, exactly like before. Try the move.",
+        "interaction": {
+          "type": "scale_demo",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "weight", "value": 3 }
+            ],
+            "right": [{ "kind": "weight", "value": 11 }]
+          },
+          "value": 3,
+          "actionLabel": "Take 3 lb off both pans",
+          "resultCaption": "The right pan drops from 11 to 8, the extra 3 leaves the left, and now x stands alone balancing 8, so here x = 8."
+        },
+        "continueLabel": "Let's practice"
+      },
+      {
+        "id": "s2",
+        "type": "scale_interactive",
+        "prompt": "x plus 2 pounds balances 8 pounds. Change the scale to get x by itself, keep both pans balanced!",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "weight", "value": 2 }
+            ],
+            "right": [{ "kind": "weight", "value": 8 }]
+          }
+        },
+        "validation": {
+          "action": "remove_from_both",
+          "value": 2,
+          "expectedUnknown": 6
+        },
+        "followUpMc": {
+          "prompt": "What does x equal?",
+          "options": ["4 lb", "5 lb", "6 lb", "10 lb"],
+          "correctIndex": 2,
+          "feedback": {
+            "correct": "Nice, you took the same 2 off both sides to keep it fair, and x came out to 6.",
+            "incorrect": [
+              "Check what is left on the right after removing 2 from 8.",
+              "x is alone now. It equals the remaining weight."
+            ]
+          }
+        },
+        "hint": "The +2 is just extra weight riding along with x. Take that same 2 off each side to set x free.",
+        "feedback": {
+          "correct": "Beautiful, both pans stayed equal the whole way, so x = 6.",
+          "incorrect": [
+            "That changes only one side. Keep both sides equal.",
+            "Remove 2 from both trays, then read what x balances."
+          ]
+        },
+        "explanation": {
+          "title": "Lift off the extra weight",
+          "body": "A number added to x is just along for the ride, so removing it equally from both sides frees x without tipping the scale."
+        }
+      },
+      {
+        "id": "s3",
+        "type": "mc",
+        "prompt": "If x + 1 = 5, what does x equal?",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "weight", "value": 1 }
+            ],
+            "right": [{ "kind": "weight", "value": 5 }]
+          }
+        },
+        "options": ["1", "4", "5", "6"],
+        "correctIndex": 1,
+        "hint": "x and the 1 are sitting together to balance 5. Just like the scale, take 1 off both sides so x is on its own, then see what is left.",
+        "feedback": {
+          "correct": "Yes! You undid the +1, so x = 4. Smart move.",
+          "incorrect": [
+            "Try undoing the +1 by subtracting 1.",
+            "x plus 1 makes 5, so take that extra 1 back off to find x."
+          ]
+        },
+        "explanation": {
+          "title": "Get x by itself",
+          "body": "An equation behaves like a balance: undo what is added to x on both sides and x ends up alone."
+        }
+      },
+      {
+        "id": "s4",
+        "type": "mc",
+        "prompt": "Two x blocks balance 10 pounds. What does one x block equal?",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "unknown", "label": "x" }
+            ],
+            "right": [{ "kind": "weight", "value": 10 }]
+          }
+        },
+        "options": ["2", "5", "8", "10"],
+        "correctIndex": 1,
+        "hint": "Both blocks are the same x, so they each carry an equal share. Share the 10 evenly between the two of them.",
+        "feedback": {
+          "correct": "Exactly! Two equal x blocks split 10, so each x is 5. Nice splitting.",
+          "incorrect": [
+            "Split 10 equally between the two matching x blocks.",
+            "What number doubled gives 10?"
+          ]
+        },
+        "explanation": {
+          "title": "Same variable, same value",
+          "body": "Every copy of the same variable weighs the same, so together they split the total into equal shares."
+        }
+      }
+    ],
+    "mastery": [
+      {
+        "id": "m1",
+        "type": "mc",
+        "prompt": "If x balances 9 pounds, x equals...",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [{ "kind": "unknown", "label": "x" }],
+            "right": [{ "kind": "weight", "value": 9 }]
+          }
+        },
+        "options": ["3", "6", "9", "12"],
+        "correctIndex": 2,
+        "feedback": {
+          "correct": "Yes! x is on its own, so it's just what it balances, 9.",
+          "incorrect": ["x is alone, so read the weight across from it."]
+        }
+      },
+      {
+        "id": "m2",
+        "type": "mc",
+        "prompt": "x + 3 = 10. What is x?",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "weight", "value": 3 }
+            ],
+            "right": [{ "kind": "weight", "value": 10 }]
+          }
+        },
+        "options": ["3", "7", "10", "13"],
+        "correctIndex": 1,
+        "feedback": {
+          "correct": "Right, clear the 3 first, and x = 7.",
+          "incorrect": ["Undo the +3 by subtracting 3 from 10."]
+        }
+      },
+      {
+        "id": "m3",
+        "type": "mc",
+        "prompt": "Two x blocks balance 14 pounds. One x equals...",
+        "visual": {
+          "type": "scale",
+          "config": {
+            "left": [
+              { "kind": "unknown", "label": "x" },
+              { "kind": "unknown", "label": "x" }
+            ],
+            "right": [{ "kind": "weight", "value": 14 }]
+          }
+        },
+        "options": ["2", "7", "12", "14"],
+        "correctIndex": 1,
+        "feedback": {
+          "correct": "Exactly, two equal x's share 14, so each is 7.",
+          "incorrect": ["Two matching x blocks share 14 equally."]
+        }
+      }
+    ]
+  }
+}
