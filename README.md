@@ -1,9 +1,9 @@
 # X-pedition
 
 **Subject:** Algebra — Solving Equations (Intro)  
-**Persona:** Maya — 7th grader, nervous about `x`, learns best by doing (not watching videos).
+**Persona:** A 7th grader, nervous about `x`, who learns best by doing (not watching videos).
 
-X-pedition is a focused Brilliant-style learn-by-doing algebra app, framed as a treasure-map expedition. Learners solve hands-on problems (balance scales, tile sorting, expression building, sharing into groups), get instant hand-written feedback, and follow a course path with a streak, XP, levels, and badges. Progress persists across sessions and devices. Phase 1 ships with **no AI**.
+X-pedition is a focused Brilliant-style learn-by-doing algebra app, framed as a treasure-map expedition. Learners solve hands-on problems (balance scales, tile sorting, expression building, sharing into groups), get instant hand-written feedback, and follow a course path with a streak, XP, levels, and badges. Progress persists across sessions and devices.
 
 ## Stack
 

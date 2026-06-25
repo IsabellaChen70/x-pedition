@@ -86,7 +86,7 @@ export default function AuthPage() {
               maxLength={30}
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}
-              placeholder="Maya"
+              placeholder="Your name"
               required
             />
           </label>
