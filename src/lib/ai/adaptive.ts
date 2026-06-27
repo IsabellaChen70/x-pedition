@@ -1,5 +1,11 @@
 import type { ConceptId } from './types';
 
+// Weakness derived from persisted spaced-repetition memory (low strength and/or
+// overdue => higher weight) is defined once in srs.ts. Re-exported here so the
+// Daily Dig builds its skills-based weakness map from the same place it gets the
+// mastery-fraction one, with no duplicated logic.
+export { weaknessFromSkills } from './srs';
+
 /** Maps a lesson mastery fraction (0-1 correct) to a practice weakness score (0-1). */
 export function weaknessFromMasteryFraction(fraction: number | null): number {
   if (fraction === null) return 0;
@@ -18,6 +24,17 @@ export function buildWeaknessMap(
     out[concept] = weaknessFromMasteryFraction(fraction);
   }
   return out;
+}
+
+/**
+ * Whether a concept that appeared during one dig counts as a CORRECT spaced
+ * review: the learner answered it right on the first try at least as often as
+ * they missed it (first-try wins ≥ distinct misses). Recorded exactly once per
+ * concept per dig so a Leitner box advances at most one step per study session.
+ * Pure; a concept that only ever appeared (0 wins, 0 misses) counts as correct.
+ */
+export function digReviewCorrect(firstTryWins: number, misses: number): boolean {
+  return firstTryWins >= misses;
 }
 
 /** After a miss in the dig, nudge that skill's weight up (capped at 1). */

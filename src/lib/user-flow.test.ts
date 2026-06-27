@@ -17,6 +17,9 @@ import type { Difficulty } from './ai/generate';
 import { answerStringsToAvoid, deterministicHints } from './ai/hint';
 import { detectMisconception } from './ai/misconception';
 import { explainWrongChoice, solutionSteps } from './ai/solution';
+import { addDays, getDueConcepts, reviewSkill, skillState } from './ai/srs';
+import type { SkillMemory } from './ai/srs';
+import type { ConceptId } from './ai/types';
 import { verifyProblem } from './ai/verify';
 import { computeBadges } from './badges';
 import { getCourse, getLesson, listLessons } from './content';
@@ -291,5 +294,93 @@ describe('user flow: random learner sessions (multi-round)', () => {
         }
       }
     }
+  });
+});
+
+describe('user flow: multi-day spaced review schedule', () => {
+  type SkillsMap = Partial<Record<ConceptId, SkillMemory>>;
+
+  /** Whole-day gap between two 'YYYY-MM-DD' keys (UTC, TZ-agnostic). */
+  const dayGap = (from: string, to: string): number => {
+    const days = (key: string) => {
+      const [y, m, d] = key.split('-').map(Number);
+      return Date.UTC(y, m - 1, d) / 86_400_000;
+    };
+    return days(to) - days(from);
+  };
+
+  it('grows intervals on success, resurfaces a lapse next day, and reflects due status', () => {
+    let skills: SkillsMap = {};
+    const concept: ConceptId = 'solve';
+    // Review one skill on a chosen day (the injectable clock), mutating the map.
+    const review = (correct: boolean, day: string) => {
+      skills = { ...skills, [concept]: reviewSkill(skills[concept], correct, day) };
+    };
+
+    // Day 1: first correct review. Fresh skill climbs to box 2, due 2 days out.
+    review(true, '2026-01-01');
+    expect(skills[concept]!.box).toBe(2);
+    expect(skills[concept]!.dueDate).toBe('2026-01-03');
+    // The schedule respects the clock: not due before its due date, due once it arrives.
+    expect(getDueConcepts(skills, '2026-01-02')).toEqual([]);
+    expect(getDueConcepts(skills, '2026-01-03')).toEqual([concept]);
+
+    // Keep reviewing correctly on each due date: the gap to the next review grows.
+    const gaps: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const due = skills[concept]!.dueDate;
+      review(true, due);
+      gaps.push(dayGap(due, skills[concept]!.dueDate));
+    }
+    expect(gaps).toEqual([4, 9, 21]);
+    expect(gaps[0]).toBeLessThan(gaps[1]);
+    expect(gaps[1]).toBeLessThan(gaps[2]);
+    // Box 5 reached only after surviving the full chain of spaced reviews.
+    expect(skills[concept]!.box).toBe(5);
+    expect(skillState(skills[concept])).toBe('mastered');
+
+    // A wrong review (on its due date) drops it to box 1 and brings it back tomorrow.
+    const lapseDay = skills[concept]!.dueDate;
+    const strengthBefore = skills[concept]!.strength;
+    review(false, lapseDay);
+    expect(skills[concept]!.box).toBe(1);
+    expect(skills[concept]!.dueDate).toBe(addDays(lapseDay, 1));
+    expect(skills[concept]!.lapses).toBe(1);
+    expect(skills[concept]!.strength).toBeLessThan(strengthBefore);
+    expect(skillState(skills[concept])).toBe('learning');
+    // Not due the day it lapsed, but due the very next day.
+    expect(getDueConcepts(skills, lapseDay)).toEqual([]);
+    expect(getDueConcepts(skills, addDays(lapseDay, 1))).toEqual([concept]);
+  });
+
+  it('interleaves several skills, surfacing them by due date as days pass', () => {
+    let skills: SkillsMap = {};
+    const review = (concept: ConceptId, correct: boolean, day: string) => {
+      skills = { ...skills, [concept]: reviewSkill(skills[concept], correct, day) };
+    };
+
+    // Day 1: first correct review for two skills; both land on the same due date.
+    review('balance', true, '2026-02-01');
+    review('solve', true, '2026-02-01');
+    expect(skills.balance!.dueDate).toBe('2026-02-03');
+    expect(skills.solve!.dueDate).toBe('2026-02-03');
+    expect(getDueConcepts(skills, '2026-02-02')).toEqual([]);
+    // Both due the same day → interleaved together (insertion order on a tie).
+    expect(getDueConcepts(skills, '2026-02-03')).toEqual(['balance', 'solve']);
+
+    // Only `solve` is reviewed on the due date; it moves out to box 3 (4 days),
+    // leaving `balance` still due and going overdue as days pass.
+    review('solve', true, '2026-02-03');
+    expect(skills.solve!.dueDate).toBe('2026-02-07');
+    expect(getDueConcepts(skills, '2026-02-05')).toEqual(['balance']);
+
+    // By 2026-02-08 both are due again, most overdue first (balance, then solve).
+    expect(getDueConcepts(skills, '2026-02-08')).toEqual(['balance', 'solve']);
+
+    // Catching up `balance` with a correct review (box 2 → 3, a 4-day gap) clears
+    // it from today's due list, leaving only `solve` still due.
+    review('balance', true, '2026-02-08');
+    expect(skills.balance!.dueDate).toBe('2026-02-12');
+    expect(getDueConcepts(skills, '2026-02-08')).toEqual(['solve']);
   });
 });

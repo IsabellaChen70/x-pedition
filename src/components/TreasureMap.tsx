@@ -7,6 +7,8 @@ type MapStopStatus = 'completed' | 'current' | 'unlocked' | 'locked';
 
 type Point = { x: number; y: number };
 
+export type MapStopMastery = 'learning' | 'practicing' | 'mastered';
+
 export type MapStop = {
   id: string;
   label: string;
@@ -14,6 +16,24 @@ export type MapStop = {
   to?: string;
   lockedReason?: string;
   progressLabel?: string | null;
+  /** Spaced-repetition state of this lesson's skill (completed lessons only). */
+  mastery?: MapStopMastery;
+  /** This lesson's skill is due for spaced review. */
+  due?: boolean;
+};
+
+const MASTERY_LABEL: Record<MapStopMastery, string> = {
+  learning: 'Learning',
+  practicing: 'Practicing',
+  mastered: 'Mastered',
+};
+
+// The mastery signal, themed to the map: a quiet parchment chip while learning, a
+// brand chip while practicing, and a gold "treasure" chip once it survives spacing.
+const MASTERY_CHIP: Record<MapStopMastery, string> = {
+  learning: 'bg-parchment-200 text-ink/70 ring-1 ring-parchment-300',
+  practicing: 'bg-brand-600 text-white',
+  mastered: 'bg-gold-400 text-ink ring-1 ring-gold-600/40',
 };
 
 export type MapSection = {
@@ -224,6 +244,14 @@ function StopNode({ stop, number }: { stop: MapStop; number: number }) {
     >
       {inner}
 
+      {stop.due && (
+        <span
+          className="pointer-events-none absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-gold-400 ring-2 ring-parchment-50 motion-safe:animate-pulse"
+          aria-hidden="true"
+          title="Due for review"
+        />
+      )}
+
       {isCurrent && (
         <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2">
           <span className="block origin-bottom motion-safe:animate-flag-bob">
@@ -237,13 +265,21 @@ function StopNode({ stop, number }: { stop: MapStop; number: number }) {
           <span className="inline-block whitespace-nowrap rounded-lg bg-parchment-50 px-3.5 py-1.5 text-base font-bold text-ink shadow-md ring-1 ring-parchment-300">
             {stop.label}
           </span>
-          {stop.progressLabel && (
+          {stop.mastery ? (
+            <span className="mt-1 block">
+              <span
+                className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${MASTERY_CHIP[stop.mastery]}`}
+              >
+                {MASTERY_LABEL[stop.mastery]}
+              </span>
+            </span>
+          ) : stop.progressLabel ? (
             <span className="mt-1 block">
               <span className="nums inline-block rounded bg-brand-600 px-2 py-0.5 text-xs font-medium text-white">
                 {stop.progressLabel}
               </span>
             </span>
-          )}
+          ) : null}
         </span>
       )}
     </span>

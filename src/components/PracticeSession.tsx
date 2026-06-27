@@ -11,11 +11,19 @@ import {
 } from '../lib/ai/generate';
 import type { Difficulty } from '../lib/ai/generate';
 import { CONCEPT_LABELS, conceptsForLesson } from '../lib/ai/concepts';
-import { bumpSessionWeakness, rankConceptMistakes } from '../lib/ai/adaptive';
+import { bumpSessionWeakness, digReviewCorrect, rankConceptMistakes } from '../lib/ai/adaptive';
 import { explainWrongChoice, solutionSteps } from '../lib/ai/solution';
+import { intervalForBox, reviewSkill } from '../lib/ai/srs';
+import type { SkillMemory } from '../lib/ai/srs';
 import type { ConceptId, GeneratedProblem } from '../lib/ai/types';
 import { getCourse } from '../lib/content';
-import { getPracticeSetup, recordPracticeSession } from '../lib/progress';
+import {
+  getPracticeSetup,
+  getReviewSetup,
+  recordPracticeSession,
+  recordSkillReview,
+  todayKey,
+} from '../lib/progress';
 import type { PracticeSetup } from '../lib/progress';
 import { validateMcStep } from '../lib/validation';
 import McStepView from './McStepView';
@@ -26,6 +34,15 @@ type PracticeSessionProps = {
   courseId: string;
   /** The lesson practice was launched from; scopes which skills are interleaved. */
   lessonId: string;
+  /**
+   * Optional Daily Review pool. When provided and non-empty, the session runs in
+   * spaced-review mode: the practice pool is exactly these (due-today) concepts
+   * instead of `conceptsForLesson(lessonId)`, placement/weakness load from the
+   * persisted skill memory (`getReviewSetup`) rather than mastery fractions, and
+   * it goes straight into a review dig (no mode chooser). Omit it for the
+   * unchanged per-lesson practice entry.
+   */
+  reviewConcepts?: ConceptId[];
   onExit: () => void;
 };
 
@@ -74,19 +91,34 @@ export default function PracticeSession({
   userId,
   courseId,
   lessonId,
+  reviewConcepts,
   onExit,
 }: PracticeSessionProps) {
-  const [mode, setMode] = useState<Mode>('choose');
-  const concepts = useMemo(() => conceptsForLesson(lessonId), [lessonId]);
-  const scopeTitle = getCourse().lessons[lessonId]?.title ?? '';
+  // Daily Review mode: a non-empty `reviewConcepts` pool means run the spaced
+  // review (due-today skills) instead of per-lesson practice.
+  const isReview = Array.isArray(reviewConcepts) && reviewConcepts.length > 0;
+  const concepts = useMemo(
+    () => (isReview ? [...new Set(reviewConcepts)] : conceptsForLesson(lessonId)),
+    [isReview, reviewConcepts, lessonId],
+  );
+  const scopeTitle = isReview ? 'due today' : getCourse().lessons[lessonId]?.title ?? '';
+  // Review goes straight into its dig; per-lesson practice still offers the chooser.
+  const [mode, setMode] = useState<Mode>(isReview ? 'daily' : 'choose');
 
   // Prewarm placement + weakness in ONE Firestore read while the learner reads the
-  // mode cards, so entering a dig is instant. Doesn't depend on the chosen mode.
+  // mode cards, so entering a dig is instant. Review mode reads its inputs from the
+  // persisted skill memory; per-lesson practice reads from mastery fractions.
   const setupRef = useRef<Promise<PracticeSetup> | null>(null);
   useEffect(() => {
     if (setupRef.current) return;
-    setupRef.current = getPracticeSetup(userId, courseId, lessonId, concepts);
-  }, [userId, courseId, lessonId, concepts]);
+    setupRef.current = isReview
+      ? getReviewSetup(userId, courseId).then((s) => ({
+          bestLevel: s.bestLevel,
+          masteryFraction: null,
+          weakness: s.weakness,
+        }))
+      : getPracticeSetup(userId, courseId, lessonId, concepts);
+  }, [userId, courseId, lessonId, concepts, isReview]);
 
   if (mode === 'choose') {
     return (
@@ -102,6 +134,7 @@ export default function PracticeSession({
   return (
     <PracticeRunner
       goal={mode === 'daily' ? DAILY_GOAL : null}
+      isReview={isReview}
       concepts={concepts}
       scopeTitle={scopeTitle}
       userId={userId}
@@ -159,6 +192,7 @@ function ModeChooser({
 
 function PracticeRunner({
   goal,
+  isReview,
   concepts,
   scopeTitle,
   userId,
@@ -168,6 +202,7 @@ function PracticeRunner({
   onExit,
 }: {
   goal: number | null;
+  isReview: boolean;
   concepts: ConceptId[];
   scopeTitle: string;
   userId: string;
@@ -201,6 +236,22 @@ function PracticeRunner({
   // nudge on the completion screen. Mirrored into state at completion to render.
   const mistakes = useRef<Partial<Record<ConceptId, number>>>({});
   const [revisit, setRevisit] = useState<{ concept: ConceptId; count: number }[]>([]);
+  // Per-concept spaced-repetition outcome for THIS dig: which concepts appeared
+  // and how many were answered right on the first try. At dig completion we record
+  // exactly ONE review per concept (correct = first-try wins ≥ misses), never per
+  // problem, so the Leitner box advances at most one step per study session.
+  const appeared = useRef<Set<ConceptId>>(new Set());
+  const firstTryCorrect = useRef<Partial<Record<ConceptId, number>>>({});
+  // Guards the once-per-dig review write so back-to-back end events can't inflate boxes.
+  const reviewsRecorded = useRef(false);
+  // The next-review interval per concept, shown as a cue on the completion screen.
+  const [reviewCues, setReviewCues] = useState<{ concept: ConceptId; days: number }[]>([]);
+  // Free practice records its reviews on exit, which unmounts the session; this
+  // lets the async cue-state update bail out instead of touching a dead component.
+  const mounted = useRef(true);
+  useEffect(() => () => {
+    mounted.current = false;
+  }, []);
   // How many solves we've already persisted, so we only ever write the delta.
   const recordedSolved = useRef(0);
   // The next problem, generated in the background while the learner reads
@@ -299,11 +350,47 @@ function PracticeRunner({
     [userId, courseId],
   );
 
+  // Record ONE spaced-repetition review per concept that appeared this dig, with
+  // correct = the learner got it right at least as often as not (first-try wins ≥
+  // misses). Runs at most once per dig (the guard), reading the prior memory once
+  // so the next-interval cue is projected from the same state recordSkillReview
+  // advances. Deterministic and AI-free.
+  const finishDig = useCallback(async () => {
+    if (reviewsRecorded.current) return;
+    reviewsRecorded.current = true;
+    const reviewed = [...appeared.current];
+    if (reviewed.length === 0) {
+      setReviewCues([]);
+      return;
+    }
+    const today = todayKey();
+    let prior: Partial<Record<ConceptId, SkillMemory>> = {};
+    try {
+      prior = (await getReviewSetup(userId, courseId)).skills;
+    } catch {
+      prior = {};
+    }
+    const cues = reviewed.map((concept) => {
+      const correct = digReviewCorrect(
+        firstTryCorrect.current[concept] ?? 0,
+        mistakes.current[concept] ?? 0,
+      );
+      const projected = reviewSkill(prior[concept], correct, today);
+      void recordSkillReview(userId, courseId, concept, correct);
+      return { concept, days: intervalForBox(projected.box) };
+    });
+    // Soonest review first, so the cue reads naturally.
+    cues.sort((a, b) => a.days - b.days);
+    if (mounted.current) setReviewCues(cues);
+  }, [userId, courseId]);
+
   const step = problem ? toMcStep(problem) : null;
 
   const handleSubmit = (index: number) => {
     if (!step) return;
     const result = validateMcStep(step, index);
+    // This concept appeared this dig, so it earns exactly one review at completion.
+    if (problem) appeared.current.add(problem.concept);
     // On a wrong answer, show ONE explanation: the specific, answer-safe diagnosis
     // of THIS choice (deterministic, grounded in the actual math), falling back to
     // the generated hint only if a specific one can't be formed.
@@ -316,6 +403,12 @@ function PracticeRunner({
 
     if (result.ok) {
       setSolved((count) => count + 1);
+      // A first-try correct answer (no prior wrong on this problem) is the per-concept
+      // signal the end-of-dig spaced review uses; counted regardless of speed.
+      if (problem && wrongAttempts.current === 0) {
+        firstTryCorrect.current[problem.concept] =
+          (firstTryCorrect.current[problem.concept] ?? 0) + 1;
+      }
       // A clean first-try win advances the climb only if it was reasonably quick
       // (effort-aware): a slow, hesitant correct answer holds the level instead of
       // ramping, and a 2nd-try win resets the streak. It never demotes here.
@@ -382,6 +475,8 @@ function PracticeRunner({
       fireConfetti();
       persist(true, solvedNow, peakLevel);
       setRevisit(rankConceptMistakes(mistakes.current));
+      // Dig complete: record one spaced review per concept and surface the cues.
+      void finishDig();
       prefetchPromise.current = null;
       prefetchResult.current = null;
       setComplete(true);
@@ -397,6 +492,10 @@ function PracticeRunner({
   };
 
   const handleDone = () => {
+    // Free practice has no goal-completion event, so its natural end (Done) is when
+    // it records its one-per-concept reviews. A goal dig already recorded at
+    // completion (the guard prevents a double write).
+    if (goal === null) void finishDig();
     persist(false, solved, peakLevel);
     onExit();
   };
@@ -408,6 +507,12 @@ function PracticeRunner({
     recordedSolved.current = 0;
     mistakes.current = {};
     setRevisit([]);
+    // A fresh dig is a new study session: reset the per-concept review accumulators
+    // and re-arm the once-per-dig review guard.
+    appeared.current = new Set();
+    firstTryCorrect.current = {};
+    reviewsRecorded.current = false;
+    setReviewCues([]);
     prefetchPromise.current = null;
     prefetchResult.current = null;
     setSolved(0);
@@ -419,11 +524,29 @@ function PracticeRunner({
   if (complete) {
     return (
       <Card padding="lg" className="text-center motion-safe:animate-dialog-in">
-        <p className="font-display text-2xl font-bold text-ink">Today's dig is done!</p>
+        <p className="font-display text-2xl font-bold text-ink">
+          {isReview ? "Today's review is done!" : "Today's dig is done!"}
+        </p>
         <p className="mt-2 text-muted">
           You solved {solved} {solved === 1 ? 'problem' : 'problems'} and reached Depth {peakLevel}.
         </p>
         <p className="mt-1 text-sm font-semibold text-gold-700">+{solved * XP_PER_SOLVE} XP</p>
+        {reviewCues.length > 0 && (
+          <div className="mx-auto mt-5 max-w-sm rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-left">
+            <p className="text-sm font-semibold text-brand-900">Next review</p>
+            <ul className="mt-2 space-y-1">
+              {reviewCues.map((cue) => (
+                <li key={cue.concept} className="text-sm leading-relaxed text-brand-900/80">
+                  <span className="font-semibold text-brand-900">{CONCEPT_LABELS[cue.concept]}</span>
+                  <span className="text-brand-700">
+                    {' · back in '}
+                    {cue.days} {cue.days === 1 ? 'day' : 'days'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {revisit.length > 0 && (
           <div className="mx-auto mt-5 max-w-sm rounded-xl border border-parchment-300 bg-parchment-50 px-4 py-3 text-left">
             <p className="text-sm font-semibold text-ink">What to revisit</p>
@@ -441,7 +564,7 @@ function PracticeRunner({
           </div>
         )}
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-          <Button onClick={restart}>Dig again</Button>
+          <Button onClick={restart}>{isReview ? 'Review again' : 'Dig again'}</Button>
           <Button variant="outline" onClick={handleDone}>
             Done
           </Button>
@@ -450,7 +573,7 @@ function PracticeRunner({
     );
   }
 
-  const title = goal !== null ? 'Daily Treasure Dig' : 'Free practice';
+  const title = isReview ? 'Daily Review' : goal !== null ? 'Daily Treasure Dig' : 'Free practice';
   const progress = goal !== null ? `${Math.min(solved, goal)} of ${goal}` : `Solved: ${solved}`;
 
   return (
@@ -460,7 +583,7 @@ function PracticeRunner({
           <p className="font-display text-xl font-bold text-ink">{title}</p>
           <p className="mt-0.5 text-sm text-muted">
             {progress}
-            {scopeTitle ? ` · up to ${scopeTitle}` : ''}
+            {scopeTitle ? ` · ${isReview ? scopeTitle : `up to ${scopeTitle}`}` : ''}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={handleDone}>

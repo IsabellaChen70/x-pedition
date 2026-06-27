@@ -67,6 +67,17 @@ AI acts like a teacher, not a chatbot: it scaffolds thinking and never gives ans
 
 The LLM features run on OpenAI: in local dev via a gitignored key, and on the deployed site via auth-gated Firebase Cloud Functions (the key stays server-side and is stripped from the client bundle). Flags (all degrade safely; no secrets in code): `VITE_AI_GENERATION` (AI problems, default off), `VITE_RECAPTCHA_SITE_KEY` (App Check). Full rationale in [docs/brainlift.md](docs/brainlift.md).
 
+## Learning science (Phase 3)
+
+Phase 3 adds a deterministic spaced-repetition layer so the app remembers each skill across sessions and schedules what to revisit. Like the rest of the app, it uses no LLM: it is pure date-and-box arithmetic, persisted per user and fully unit-tested.
+
+- **Spaced repetition:** a per-skill Leitner schedule with growing intervals (1, 2, 4, 9, 21 days). A correct review pushes the next one further out; a wrong answer brings the skill back the next day.
+- **Daily Treasure Dig (spacing-aware):** the daily practice runs the skills that are actually due first, interleaved across lessons, and falls back to free practice of everything learned when nothing is due.
+- **Durable mastery signal:** every skill reads Learning, Practicing, or Mastered, and "Mastered" requires surviving a chain of spaced reviews, not a single in-session win.
+- **On-map progress:** each completed lesson node shows its skill state (Learning, Practicing, Mastered) and a gold ping when it is due, plus a "recalled after a day" retention stat that shows the schedule working.
+
+Skill memory persists in the existing per-user progress document (no new data store, no rules change). Full rationale and the learning-science citations are in [docs/brainlift.md](docs/brainlift.md).
+
 ## AI workflow (Cursor)
 
 Built with an AI-first workflow in Cursor. Reusable tooling committed in this repo:

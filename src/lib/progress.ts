@@ -10,6 +10,8 @@ import {
 import { db } from './firestore';
 import { buildWeaknessMap } from './ai/adaptive';
 import { lessonForConcept } from './ai/concepts';
+import { getDueConcepts, reviewSkill, weaknessFromSkills } from './ai/srs';
+import type { SkillMemory } from './ai/srs';
 import type { ConceptId } from './ai/types';
 
 type LessonProgressPhase = 'scaffolded' | 'mastery';
@@ -57,6 +59,8 @@ export type CourseProgress = {
   reflectionsCompleted: number;
   /** Passed the capstone Final Challenge (one puzzle per lesson), unlocks the treasure. */
   finalChallengePassed: boolean;
+  /** Per-skill spaced-repetition memory powering due-today review and the skill map. */
+  skills?: Partial<Record<ConceptId, SkillMemory>>;
 };
 
 function progressRef(userId: string, courseId: string) {
@@ -87,6 +91,7 @@ export function normalizeProgress(data: unknown, firstLessonId: string): CourseP
     practice: normalizePractice(progress.practice),
     reflectionsCompleted: progress.reflectionsCompleted ?? 0,
     finalChallengePassed: progress.finalChallengePassed ?? false,
+    skills: progress.skills ?? {},
   };
 }
 
@@ -124,8 +129,25 @@ export function dateKeyInTimeZone(date: Date, timeZone: string = STREAK_TIME_ZON
   }).format(date);
 }
 
+// DEV-only time travel: lets local testing jump the effective "today" forward so
+// spaced reviews come due without waiting real days. Persisted in localStorage,
+// and inert in production (import.meta.env.DEV is false in the prod build) and in
+// non-browser environments, so it can never shift a real user's schedule.
+const DEV_DAY_OFFSET_KEY = 'xp_dev_day_offset';
+
+export function getDevDayOffset(): number {
+  if (!import.meta.env.DEV || typeof localStorage === 'undefined') return 0;
+  const days = Number(localStorage.getItem(DEV_DAY_OFFSET_KEY));
+  return Number.isFinite(days) ? Math.max(0, Math.floor(days)) : 0;
+}
+
+export function setDevDayOffset(days: number): void {
+  if (!import.meta.env.DEV || typeof localStorage === 'undefined') return;
+  localStorage.setItem(DEV_DAY_OFFSET_KEY, String(Math.max(0, Math.floor(days))));
+}
+
 export function todayKey(): string {
-  return dateKeyInTimeZone(new Date());
+  return dateKeyInTimeZone(new Date(Date.now() + getDevDayOffset() * 24 * 60 * 60 * 1000));
 }
 
 export function yesterdayKey(): string {
@@ -178,6 +200,7 @@ export async function getCourseProgress(
       practice: { bestLevel: 0, solvedTotal: 0, digsCompleted: 0 },
       reflectionsCompleted: 0,
       finalChallengePassed: false,
+      skills: {},
     };
     await setDoc(ref, {
       ...initialProgress,
@@ -207,6 +230,7 @@ export async function resetCourseProgress(
     practice: { bestLevel: 0, solvedTotal: 0, digsCompleted: 0 },
     reflectionsCompleted: 0,
     finalChallengePassed: false,
+    skills: {},
   };
 
   await setDoc(progressRef(userId, courseId), {
@@ -466,4 +490,64 @@ export async function recordPracticeSession(
     },
     { merge: true },
   );
+}
+
+/**
+ * Everything the due-today Daily Review needs from ONE Firestore read: the
+ * concepts due now, a weakness map derived from persisted skill memory, the best
+ * difficulty for placement, and the raw skills map for the Skill Map / cues.
+ */
+export type ReviewSetup = {
+  /** Concepts due for review today, most overdue first. */
+  dueConcepts: ConceptId[];
+  /** Per-skill weakness (0..1) from low strength and/or being overdue. */
+  weakness: Partial<Record<ConceptId, number>>;
+  /** Best difficulty reached before, for resume placement. */
+  bestLevel: number;
+  /** Persisted per-skill memory, for the Skill Map and next-interval cues. */
+  skills: Partial<Record<ConceptId, SkillMemory>>;
+};
+
+/**
+ * Record one spaced-repetition review for a single concept. Reads the current
+ * memory, advances it deterministically with `reviewSkill`, then merge-writes
+ * ONLY that one skill (a full, defined SkillMemory, never `undefined`). Purely
+ * additive: lesson and practice fields are left untouched.
+ */
+export async function recordSkillReview(
+  userId: string,
+  courseId: string,
+  concept: ConceptId,
+  correct: boolean,
+): Promise<void> {
+  const existing = await readProgressData(userId, courseId).catch(() => undefined);
+  const nextMemory = reviewSkill(existing?.skills?.[concept], correct, todayKey());
+  await setDoc(
+    progressRef(userId, courseId),
+    {
+      skills: { [concept]: nextMemory },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+/**
+ * Load the due-today Daily Review inputs in a SINGLE doc read: due concepts,
+ * strength/overdue weakness, best level, and the raw skills map. Pure derivation
+ * after the read (mirrors getPracticeSetup), so it's cheap to call on entry.
+ */
+export async function getReviewSetup(
+  userId: string,
+  courseId: string,
+): Promise<ReviewSetup> {
+  const data = await readProgressData(userId, courseId).catch(() => undefined);
+  const today = todayKey();
+  const skills = data?.skills ?? {};
+  return {
+    dueConcepts: getDueConcepts(skills, today),
+    weakness: weaknessFromSkills(skills, today),
+    bestLevel: normalizePractice(data?.practice).bestLevel,
+    skills,
+  };
 }

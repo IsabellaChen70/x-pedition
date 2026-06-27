@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { isPracticeEnabled } from '../lib/ai/config';
+import { CONCEPT_LABELS } from '../lib/ai/concepts';
 import type { MisconceptionSummary } from '../lib/ai/misconception';
+import type { ConceptId } from '../lib/ai/types';
 import { fireConfetti } from '../lib/confetti';
 import { Button, buttonClasses } from './ui';
 import ProgressRing from './ProgressRing';
@@ -16,6 +18,8 @@ type LessonCompleteProps = {
   nextLesson?: { id: string; title: string };
   /** Ideas the learner tripped on this run, for a "what to revisit" nudge. */
   revisit?: MisconceptionSummary[];
+  /** When this lesson's skill is next due for spaced review (days from today). */
+  nextReview?: { concept: ConceptId; days: number };
   userId: string;
   courseId: string;
   lessonId: string;
@@ -30,6 +34,7 @@ export default function LessonComplete({
   passed,
   nextLesson,
   revisit = [],
+  nextReview,
   userId,
   courseId,
   lessonId,
@@ -108,6 +113,17 @@ export default function LessonComplete({
         </p>
       )}
 
+      {nextReview && (
+        <div className="mx-auto mt-4 flex w-fit items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-sm font-medium text-brand-800">
+          <ClockIcon className="h-4 w-4 text-brand-600" />
+          <span>
+            <span className="font-semibold">{CONCEPT_LABELS[nextReview.concept]}</span>
+            {' · back in '}
+            {nextReview.days} {nextReview.days === 1 ? 'day' : 'days'}
+          </span>
+        </div>
+      )}
+
       {revisit.length > 0 && (
         <div className="mx-auto mt-5 max-w-sm rounded-xl border border-parchment-300 bg-parchment-50 px-4 py-3 text-left">
           <p className="text-sm font-semibold text-ink">What to revisit</p>
@@ -144,5 +160,14 @@ export default function LessonComplete({
         </Link>
       </div>
     </div>
+  );
+}
+
+function ClockIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+      <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

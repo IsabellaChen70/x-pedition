@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getNextLesson } from '../lib/content';
 import {
   countMasteryCorrect,
@@ -8,9 +8,15 @@ import {
 import {
   completeLessonProgress,
   getCourseProgress,
+  recordSkillReview,
   saveLessonProgress,
+  todayKey,
 } from '../lib/progress';
 import type { LessonAnswerRecord, LessonProgressSnapshot } from '../lib/progress';
+import { conceptForLesson } from '../lib/ai/concepts';
+import { intervalForBox, reviewSkill } from '../lib/ai/srs';
+import type { SkillMemory } from '../lib/ai/srs';
+import type { ConceptId } from '../lib/ai/types';
 import {
   getStepsForPhase,
   validateEqualShare,
@@ -65,6 +71,12 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
   const [answerHistory, setAnswerHistory] = useState<Record<string, LessonAnswerRecord>>({});
   const [progressLoaded, setProgressLoaded] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
+  // When this lesson's skill is next due for spaced review, shown as a cue on the
+  // completion screen ("Solving for x · back in N days").
+  const [nextReview, setNextReview] = useState<{ concept: ConceptId; days: number } | null>(null);
+  // The lesson concept's persisted memory at load, so the completion cue can
+  // project the next interval deterministically (it mirrors recordSkillReview).
+  const conceptMemory = useRef<SkillMemory | undefined>(undefined);
 
   const [scaleConfig, setScaleConfig] = useState<ScaleVisualConfig | null>(null);
   const [removalApplied, setRemovalApplied] = useState(false);
@@ -144,6 +156,11 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
           return;
         }
 
+        // Remember the lesson skill's current spaced-repetition memory so the
+        // completion cue can project the next review interval (see evaluateMastery).
+        const lessonConcept = conceptForLesson(lesson.id);
+        conceptMemory.current = lessonConcept ? progress.skills?.[lessonConcept] : undefined;
+
         if (saved) {
           setPhase(saved.phase);
           setStepIndex(saved.stepIndex);
@@ -202,7 +219,20 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
     setLessonPassed(passed);
     setFinished(true);
     void persistCompletion(buildProgressSnapshot({ finished: true, passed }));
-  }, [allMasteryIds, buildProgressSnapshot, masteryResults, persistCompletion]);
+
+    // Spaced repetition: record exactly ONE review for this lesson's concept on
+    // mastery completion (never per mastery question), with correct = the pass
+    // result. A pass pushes the next review further out; a fail resurfaces it the
+    // next day. The cue is projected from the same prior memory recordSkillReview
+    // advances, so it matches what gets persisted.
+    const concept = conceptForLesson(lesson.id);
+    if (concept) {
+      const projected = reviewSkill(conceptMemory.current, passed, todayKey());
+      conceptMemory.current = projected;
+      setNextReview({ concept, days: intervalForBox(projected.box) });
+      void recordSkillReview(userId, courseId, concept, passed);
+    }
+  }, [allMasteryIds, buildProgressSnapshot, courseId, lesson.id, masteryResults, persistCompletion, userId]);
 
   const goToNextStep = useCallback(() => {
     resetStepState();
@@ -476,6 +506,7 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
     setRemovedFromBoth(false);
     setMisconceptionId(null);
     setMisconceptionLog([]);
+    setNextReview(null);
     void persistProgress(snapshot);
   };
 
@@ -515,6 +546,7 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
           passed={lessonPassed}
           nextLesson={nextLesson ?? undefined}
           revisit={summarizeMisconceptions(misconceptionLog)}
+          nextReview={nextReview ?? undefined}
           userId={userId}
           courseId={courseId}
           lessonId={lesson.id}

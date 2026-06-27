@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../auth/auth-context';
 import AchievementsModal from '../components/AchievementsModal';
 import AppHeader from '../components/AppHeader';
@@ -6,9 +6,12 @@ import BadgeUnlockModal from '../components/BadgeUnlockModal';
 import TreasureMap from '../components/TreasureMap';
 import type { MapSection, MapStop } from '../components/TreasureMap';
 import TreasureModal from '../components/TreasureModal';
-import { Alert } from '../components/ui';
+import { Alert, Button } from '../components/ui';
 import mapBg from '../assets/map-bg.jpg';
 import { isPracticeEnabled } from '../lib/ai/config';
+import { conceptForLesson, lessonForConcept } from '../lib/ai/concepts';
+import { getDueConcepts, retentionAfterADay, skillState } from '../lib/ai/srs';
+import type { ConceptId } from '../lib/ai/types';
 import { computeBadges, newlyEarnedBadgeIds } from '../lib/badges';
 import type { Badge } from '../lib/badges';
 import { getCourse, getLesson, listLessons } from '../lib/content';
@@ -16,9 +19,12 @@ import {
   acknowledgeBadges,
   acknowledgeStreakCelebration,
   getCourseProgress,
+  getDevDayOffset,
   recordFinalChallengePassed,
   resetCourseProgress,
+  setDevDayOffset,
   shouldCelebrateStreak,
+  todayKey,
 } from '../lib/progress';
 import type { CourseProgress } from '../lib/progress';
 
@@ -39,6 +45,7 @@ export default function HomePage() {
   const [showAchievements, setShowAchievements] = useState(false);
   const [showTreasure, setShowTreasure] = useState(false);
   const [showPractice, setShowPractice] = useState(false);
+  const [reviewConcepts, setReviewConcepts] = useState<ConceptId[]>([]);
   const [showFinalChallenge, setShowFinalChallenge] = useState(false);
   const [celebrateStreak, setCelebrateStreak] = useState(false);
   const [unlockedBadges, setUnlockedBadges] = useState<Badge[]>([]);
@@ -57,6 +64,14 @@ export default function HomePage() {
       .sort((a, b) => course.lessonOrder.indexOf(b) - course.lessonOrder.indexOf(a))[0] ?? firstLessonId;
   const firstName =
     user?.displayName?.trim().split(/\s+/)[0] || user?.email?.split('@')[0] || 'Explorer';
+
+  // The spaced-repetition Skill Map + Daily Review read straight from the loaded
+  // progress doc's per-skill memory (no extra Firestore read): which skills are
+  // due today, and the memory the map renders.
+  const today = todayKey();
+  const skills = progress?.skills ?? {};
+  const dueConcepts = getDueConcepts(skills, today);
+  const retention = retentionAfterADay(skills, today);
 
   // XP and level reflect real results: each cleared lesson and each correct
   // mastery answer is worth points, so the bar tracks actual progress.
@@ -129,6 +144,20 @@ export default function HomePage() {
       setResettingProgress(false);
     }
   };
+
+  // Quietly re-read progress after a dig/review so the Skill Map and Daily Review
+  // reflect the freshly recorded spaced-repetition reviews (cache-first, cheap).
+  const refreshProgress = useCallback(async () => {
+    if (!user || !firstLessonId) {
+      return;
+    }
+    try {
+      const next = await getCourseProgress(user.uid, course.id, firstLessonId);
+      setProgress(next);
+    } catch {
+      // Keep the current view; a transient read failure shouldn't disrupt the page.
+    }
+  }, [course.id, firstLessonId, user]);
 
   useEffect(() => {
     let active = true;
@@ -211,6 +240,11 @@ export default function HomePage() {
     const status = getLessonStatus(lesson.id);
     const hasContent = getLesson(lesson.id) !== null;
     const accessible = status !== 'locked' && hasContent;
+    // Fold the spaced-repetition signal onto the map node: a completed lesson's
+    // skill shows its mastery state, and any due skill gets a "review due" ping.
+    const concept = conceptForLesson(lesson.id);
+    const mastery = status === 'completed' && concept ? skillState(skills[concept]) : undefined;
+    const due = concept ? dueConcepts.includes(concept) : false;
     return {
       id: lesson.id,
       label: lesson.title,
@@ -219,6 +253,8 @@ export default function HomePage() {
       lockedReason:
         status === 'locked' ? getLockedReason(index) : !hasContent ? 'Coming soon' : undefined,
       progressLabel: getLessonProgressLabel(lesson.id),
+      mastery,
+      due,
     };
   });
   // The treasure now sits behind a capstone Final Challenge: clearing every
@@ -308,14 +344,68 @@ export default function HomePage() {
           {isPracticeEnabled() && practiceLessonId && (
             <button
               type="button"
-              onClick={() => setShowPractice(true)}
+              onClick={() => {
+                setReviewConcepts(dueConcepts);
+                setShowPractice(true);
+              }}
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-gold-400 px-5 py-2.5 text-sm font-bold text-ink shadow-md transition duration-200 hover:bg-gold-300 hover:shadow-lg motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100"
             >
               <ShovelIcon className="h-4 w-4" />
               Daily Treasure Dig
+              {dueConcepts.length > 0 && (
+                <span className="rounded-full bg-ink/15 px-2 py-0.5 text-xs font-bold">
+                  {dueConcepts.length} due
+                </span>
+              )}
             </button>
           )}
         </div>
+
+        {user && progress && (
+          <div className="mx-auto w-full max-w-2xl space-y-4 px-4 pb-4">
+            {import.meta.env.DEV && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-parchment-400 bg-parchment-50 px-4 py-3">
+                <p className="text-sm text-ink">
+                  Dev time travel: viewing as <span className="font-semibold">{today}</span>
+                  {getDevDayOffset() > 0 &&
+                    ` (+${getDevDayOffset()} day${getDevDayOffset() === 1 ? '' : 's'})`}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setDevDayOffset(getDevDayOffset() + 1);
+                      window.location.reload();
+                    }}
+                  >
+                    +1 day
+                  </Button>
+                  {getDevDayOffset() > 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setDevDayOffset(0);
+                        window.location.reload();
+                      }}
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+            {isPracticeEnabled() && retention.pct !== null && (
+              <p className="text-center text-sm text-muted">
+                Spaced practice is sticking:{' '}
+                <span className="font-semibold text-ink">{retention.pct}%</span> of reviewed skills
+                recalled after a day.
+              </p>
+            )}
+          </div>
+        )}
+
         <TreasureMap sections={sections} backdrop={false} />
       </main>
 
@@ -366,8 +456,16 @@ export default function HomePage() {
               <PracticeSession
                 userId={user.uid}
                 courseId={course.id}
-                lessonId={practiceLessonId}
-                onExit={() => setShowPractice(false)}
+                lessonId={
+                  reviewConcepts.length === 1
+                    ? lessonForConcept(reviewConcepts[0]) ?? practiceLessonId
+                    : practiceLessonId
+                }
+                reviewConcepts={reviewConcepts}
+                onExit={() => {
+                  setShowPractice(false);
+                  void refreshProgress();
+                }}
               />
             </div>
           </div>
