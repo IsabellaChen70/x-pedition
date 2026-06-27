@@ -32,3 +32,10 @@ npm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# Cursor: keep authored AI config (rules, agents, skills); ignore local caches and MCP files
+.cursor/*
+!.cursor/agents/
+!.cursor/rules/
+!.cursor/skills/
+*_mcp.json
