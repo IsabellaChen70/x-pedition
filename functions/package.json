@@ -1,0 +1,12 @@
+{
+  "name": "functions",
+  "description": "Cloud Functions for X-pedition (server-side OpenAI judge)",
+  "private": true,
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-functions": "^6.0.0"
+  }
+}

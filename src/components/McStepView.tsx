@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { McStep } from '../types/lesson';
 import { renderPrompt } from '../lib/renderPrompt';
 import FeedbackBanner from './FeedbackBanner';
 import McQuestion from './McQuestion';
 import ScaleVisual from './ScaleVisual';
-import StepActions from './StepActions';
+import StepActions, { type StepHint } from './StepActions';
 
 type McStepViewProps = {
   step: McStep;
@@ -16,7 +17,11 @@ type McStepViewProps = {
   onTryAgain?: () => void;
   onBack?: () => void;
   canGoBack?: boolean;
-  hint?: string;
+  hint?: StepHint;
+  /** Inline self-explanation prompt shown in place of Continue after a correct answer. */
+  reflectSlot?: ReactNode;
+  /** A quiet control on the action row (e.g. practice's "Show me how"). */
+  secondaryAction?: ReactNode;
 };
 
 export default function McStepView({
@@ -30,6 +35,8 @@ export default function McStepView({
   onBack,
   canGoBack,
   hint,
+  reflectSlot,
+  secondaryAction,
 }: McStepViewProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [order, setOrder] = useState<number[]>(() => step.options.map((_, index) => index));
@@ -87,6 +94,8 @@ export default function McStepView({
         onBack={onBack}
         canGoBack={canGoBack}
         hint={hint}
+        reflectSlot={reflectSlot}
+        secondaryAction={secondaryAction}
       />
     </div>
   );

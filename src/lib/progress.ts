@@ -3,10 +3,14 @@ import {
   doc,
   getDoc,
   getDocFromCache,
+  increment,
   serverTimestamp,
   setDoc,
 } from 'firebase/firestore';
 import { db } from './firestore';
+import { buildWeaknessMap } from './ai/adaptive';
+import { lessonForConcept } from './ai/concepts';
+import type { ConceptId } from './ai/types';
 
 type LessonProgressPhase = 'scaffolded' | 'mastery';
 
@@ -17,6 +21,8 @@ export type LessonAnswerRecord = {
   answer: string;
   correctAnswer: string;
   attempts: string[];
+  /** The learner's typed self-explanation ("Convince Me"), shown in review. */
+  reflection?: string;
 };
 
 export type LessonProgressSnapshot = {
@@ -28,6 +34,15 @@ export type LessonProgressSnapshot = {
   answerHistory: Record<string, LessonAnswerRecord>;
 };
 
+export type PracticeStats = {
+  /** Highest difficulty level reached in practice (1-5); 0 means none yet. */
+  bestLevel: number;
+  /** Lifetime practice problems solved. */
+  solvedTotal: number;
+  /** Lifetime Daily Treasure Digs completed. */
+  digsCompleted: number;
+};
+
 export type CourseProgress = {
   currentLessonId: string;
   unlockedLessonIds: string[];
@@ -37,10 +52,24 @@ export type CourseProgress = {
   lastStreakDate: string | null;
   lastCelebratedStreak: number;
   acknowledgedBadgeIds: string[];
+  practice: PracticeStats;
+  /** Lifetime self-explanations submitted ("Convince Me"); rewards reflection. */
+  reflectionsCompleted: number;
+  /** Passed the capstone Final Challenge (one puzzle per lesson), unlocks the treasure. */
+  finalChallengePassed: boolean;
 };
 
 function progressRef(userId: string, courseId: string) {
   return doc(db, 'users', userId, 'progress', courseId);
+}
+
+function normalizePractice(data: unknown): PracticeStats {
+  const practice = typeof data === 'object' && data !== null ? data as Partial<PracticeStats> : {};
+  return {
+    bestLevel: typeof practice.bestLevel === 'number' ? practice.bestLevel : 0,
+    solvedTotal: typeof practice.solvedTotal === 'number' ? practice.solvedTotal : 0,
+    digsCompleted: typeof practice.digsCompleted === 'number' ? practice.digsCompleted : 0,
+  };
 }
 
 export function normalizeProgress(data: unknown, firstLessonId: string): CourseProgress {
@@ -55,6 +84,9 @@ export function normalizeProgress(data: unknown, firstLessonId: string): CourseP
     lastStreakDate: progress.lastStreakDate ?? null,
     lastCelebratedStreak: progress.lastCelebratedStreak ?? 0,
     acknowledgedBadgeIds: progress.acknowledgedBadgeIds ?? [],
+    practice: normalizePractice(progress.practice),
+    reflectionsCompleted: progress.reflectionsCompleted ?? 0,
+    finalChallengePassed: progress.finalChallengePassed ?? false,
   };
 }
 
@@ -143,6 +175,9 @@ export async function getCourseProgress(
       lastStreakDate: null,
       lastCelebratedStreak: 0,
       acknowledgedBadgeIds: [],
+      practice: { bestLevel: 0, solvedTotal: 0, digsCompleted: 0 },
+      reflectionsCompleted: 0,
+      finalChallengePassed: false,
     };
     await setDoc(ref, {
       ...initialProgress,
@@ -169,6 +204,9 @@ export async function resetCourseProgress(
     lastStreakDate: null,
     lastCelebratedStreak: 0,
     acknowledgedBadgeIds: [],
+    practice: { bestLevel: 0, solvedTotal: 0, digsCompleted: 0 },
+    reflectionsCompleted: 0,
+    finalChallengePassed: false,
   };
 
   await setDoc(progressRef(userId, courseId), {
@@ -283,6 +321,146 @@ export async function completeLessonProgress(
         },
       },
       ...completionFields,
+      ...streakFields,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+/**
+ * Record one completed self-explanation ("Convince Me"). Purely additive, it
+ * never touches lesson or practice progress, and drives reflection XP/badges.
+ */
+export async function recordReflection(userId: string, courseId: string): Promise<void> {
+  await setDoc(
+    progressRef(userId, courseId),
+    {
+      reflectionsCompleted: increment(1),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+/**
+ * Record that the learner passed the capstone Final Challenge, which unlocks the
+ * treasure. Additive and idempotent, it only flips the flag, leaving lesson and
+ * practice progress untouched.
+ */
+export async function recordFinalChallengePassed(userId: string, courseId: string): Promise<void> {
+  await setDoc(
+    progressRef(userId, courseId),
+    {
+      finalChallengePassed: true,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+/** Pure: fraction (0-1) of a lesson's mastery answers correct, or null if none. */
+function masteryFractionFromResults(results: Record<string, boolean> | undefined): number | null {
+  if (!results) return null;
+  const outcomes = Object.values(results);
+  if (outcomes.length === 0) return null;
+  return outcomes.filter(Boolean).length / outcomes.length;
+}
+
+/** Read the progress doc once, cache-first then server. Undefined if it doesn't exist. */
+async function readProgressData(
+  userId: string,
+  courseId: string,
+): Promise<Partial<CourseProgress> | undefined> {
+  const ref = progressRef(userId, courseId);
+  try {
+    const cached = await getDocFromCache(ref);
+    if (cached.exists()) {
+      return cached.data() as Partial<CourseProgress>;
+    }
+  } catch {
+    // No cached copy yet or cache unavailable; fall through to the server.
+  }
+  const snapshot = await getDoc(ref);
+  return snapshot.exists() ? (snapshot.data() as Partial<CourseProgress>) : undefined;
+}
+
+/** Everything the practice dig needs to place + adapt, from ONE Firestore read. */
+export type PracticeSetup = {
+  /** Best difficulty reached before, for resume placement. */
+  bestLevel: number;
+  /** Mastery fraction for the launch lesson (first-timer placement). */
+  masteryFraction: number | null;
+  /** Per-skill weakness (0..1) for the adaptive path. */
+  weakness: Partial<Record<ConceptId, number>>;
+};
+
+/**
+ * Load placement + adaptivity inputs for a dig in a SINGLE doc read (previously
+ * this was ~7 reads of the same doc: stats + a mastery read per concept). Pure
+ * derivation after the read, so it's fast and cheap on dig start.
+ */
+export async function getPracticeSetup(
+  userId: string,
+  courseId: string,
+  lessonId: string,
+  concepts: ConceptId[],
+): Promise<PracticeSetup> {
+  const data = await readProgressData(userId, courseId).catch(() => undefined);
+  const bestLevel = normalizePractice(data?.practice).bestLevel;
+  const masteryFraction = masteryFractionFromResults(data?.lessons?.[lessonId]?.masteryResults);
+  const fractions = Object.fromEntries(
+    concepts.map((concept) => {
+      const conceptLesson = lessonForConcept(concept);
+      const fraction = conceptLesson
+        ? masteryFractionFromResults(data?.lessons?.[conceptLesson]?.masteryResults)
+        : null;
+      return [concept, fraction];
+    }),
+  );
+  return { bestLevel, masteryFraction, weakness: buildWeaknessMap(fractions) };
+}
+
+/**
+ * Persist a practice session additively, leaving all lesson progress untouched.
+ * `solved` is the count of newly solved problems to add; `peakLevel` raises the
+ * saved best level (used to resume one level below it next time); completing a
+ * Daily Treasure Dig (`completedDig`) also counts as today's streak activity.
+ */
+export async function recordPracticeSession(
+  userId: string,
+  courseId: string,
+  { solved, peakLevel, completedDig }: { solved: number; peakLevel: number; completedDig: boolean },
+): Promise<void> {
+  if (solved <= 0 && !completedDig) {
+    return;
+  }
+  const ref = progressRef(userId, courseId);
+  const existing = await getDoc(ref);
+  const data = (existing.data() ?? {}) as Partial<CourseProgress>;
+  const previousBest = data.practice?.bestLevel ?? 0;
+
+  const practiceUpdate: Record<string, unknown> = {
+    bestLevel: Math.max(previousBest, peakLevel),
+  };
+  if (solved > 0) {
+    practiceUpdate.solvedTotal = increment(solved);
+  }
+  if (completedDig) {
+    practiceUpdate.digsCompleted = increment(1);
+  }
+
+  const streakFields = completedDig
+    ? {
+        streakCount: nextStreakCount(data.lastStreakDate ?? null, data.streakCount ?? 0),
+        lastStreakDate: todayKey(),
+      }
+    : {};
+
+  await setDoc(
+    ref,
+    {
+      practice: practiceUpdate,
       ...streakFields,
       updatedAt: serverTimestamp(),
     },

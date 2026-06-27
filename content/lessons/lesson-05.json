@@ -8,14 +8,41 @@
         "id": "concept-1",
         "type": "concept",
         "title": "Turn words into algebra",
-        "body": "Word problems are just math in disguise. Name the unknown number **x**, then translate the key words into symbols. Tap through the mini-dictionary.",
+        "body": "Word problems are math in disguise. Name the unknown **x**, then turn key words into symbols.",
         "interaction": {
           "type": "reveal",
           "revealLabel": "Show me more",
           "steps": [
-            { "text": "First, whenever a problem says \"a number,\" you can call it x." },
-            { "text": "\"plus\" or \"more than\" means add (+). \"minus\" or \"less than\" means subtract (−)." },
-            { "text": "\"times\" means multiply, written as a number in front (like 3x). Translate piece by piece and any phrase becomes an expression. Your turn!" }
+            {
+              "text": "A word problem often hides a number inside the words.",
+              "gate": {
+                "type": "fill",
+                "template": "Whenever a problem says \"a number,\" name it ___.",
+                "answers": ["x"],
+                "extras": ["5", "+"],
+                "hint": "When you don't know a number yet, give it a short letter label to stand in for it."
+              }
+            },
+            {
+              "text": "Translate the action words into symbols.",
+              "gate": {
+                "type": "fill",
+                "template": "\"Plus\" means ___ and \"minus\" means ___.",
+                "answers": ["add", "subtract"],
+                "extras": ["multiply"],
+                "hint": "Plus is the word for putting amounts together, and minus is the word for taking an amount away."
+              }
+            },
+            {
+              "text": "One more key word.",
+              "gate": {
+                "type": "fill",
+                "template": "The word \"times\" tells you to ___.",
+                "answers": ["multiply"],
+                "extras": ["add", "subtract"],
+                "hint": "The word times means making several equal copies of an amount, not just putting two amounts together."
+              }
+            }
           ]
         },
         "continueLabel": "Let's practice"
@@ -27,17 +54,17 @@
         "visual": { "type": "none" },
         "options": ["x + 5", "5x", "x - 5", "5 - x"],
         "correctIndex": 0,
-        "hint": "Call the unknown number x. Then \"plus 5\" tells you which operation to tack on.",
+        "hints": [
+          "Name the unknown number with a letter first.",
+          "Use x for the number, then let plus 5 pick the operation.",
+          "The word plus tells you to add 5 to your x."
+        ],
         "feedback": {
-          "correct": "Yes! Call the number x, and \"plus\" adds 5, that's x + 5.",
+          "correct": "Yes! Call it x, and \"plus\" adds 5: x + 5.",
           "incorrect": [
             "Start with x for the unknown number.",
             "The word plus means add."
           ]
-        },
-        "explanation": {
-          "title": "Name the unknown",
-          "body": "Translation has two parts: name the unknown with a letter, then turn each key word into its operation."
         }
       },
       {
@@ -47,23 +74,23 @@
         "visual": { "type": "none" },
         "options": ["x + 3", "x - 3", "3x", "3 - x"],
         "correctIndex": 2,
-        "hint": "\"Three times\" means three copies of the number. How do we write copies in a compact way?",
+        "hints": [
+          "The word times tells you to multiply, not add.",
+          "Three times a number means three copies of x.",
+          "Write copies compactly by putting the count in front of x."
+        ],
         "feedback": {
           "correct": "Exactly, \"three times\" means three copies, written 3x.",
           "incorrect": [
             "Times means multiplication, not addition.",
             "When you multiply, the number sits in front of the variable."
           ]
-        },
-        "explanation": {
-          "title": "Times means copies",
-          "body": "\"Times\" is multiplication, and multiplying a variable is written compactly with the count in front."
         }
       },
       {
         "id": "s3",
         "type": "scale_interactive",
-        "prompt": "A story says \"a number plus 4 equals 10.\" On the scale, x plus 4 balances 10. Change the scale to find the number, keep both pans balanced!",
+        "prompt": "Story: \"a number plus 4 equals 10.\" On the scale, x plus 4 balances 10. Find the number, keep both pans balanced!",
         "visual": {
           "type": "scale",
           "config": {
@@ -91,31 +118,58 @@
             ]
           }
         },
-        "hint": "Translate the words into x + 4 = 10, then undo +4.",
+        "hints": [
+          "Turn the words into an equation before you solve.",
+          "The story becomes x plus 4 equals 10, so undo that plus 4.",
+          "Take 4 off both pans, then read what x balances."
+        ],
         "feedback": {
           "correct": "Nice, the story became x + 4 = 10, and x = 6.",
           "incorrect": [
             "Keep the scale balanced by changing both sides.",
             "Remove the +4 from both sides."
           ]
-        },
-        "explanation": {
-          "title": "Words to equation",
-          "body": "Once words become an equation, solving is the same balance move as before: undo the operation on both sides."
         }
       },
       {
         "id": "concept-2",
         "type": "concept",
         "title": "Build it in pieces",
-        "body": "Longer phrases have more than one part. Build the expression one piece at a time, in the order the words give you. Tap through an example.",
+        "body": "Longer phrases have more parts. Build the expression one piece at a time, in word order.",
         "interaction": {
           "type": "reveal",
           "revealLabel": "Show me more",
           "steps": [
-            { "text": "Take \"four more than twice a number.\" Start with the main part: \"twice a number\" is 2x." },
-            { "text": "Then \"four more\" means add 4 onto the end." },
-            { "text": "Snap the pieces together in order: 2x + 4. Build yours the same way, main part first, then the extra. Your turn!" }
+            {
+              "text": "Take \"four more than twice a number.\" Start with \"twice a number.\"",
+              "gate": {
+                "type": "fill",
+                "template": "\"Twice a number\" means two copies, written ___.",
+                "answers": ["2x"],
+                "extras": ["x2", "2 + x"],
+                "hint": "Twice means two copies, so write how many copies, two, right in front of a single x."
+              }
+            },
+            {
+              "text": "Now the extra piece: \"four more.\"",
+              "gate": {
+                "type": "fill",
+                "template": "\"Four more\" means ___ 4 onto the end.",
+                "answers": ["add"],
+                "extras": ["subtract", "times"],
+                "hint": "The words four more mean you are putting an extra 4 on top of what you already have."
+              }
+            },
+            {
+              "text": "Snap the pieces together in word order.",
+              "gate": {
+                "type": "fill",
+                "template": "In order, \"four more than twice a number\" is ___.",
+                "answers": ["2x + 4"],
+                "extras": ["4x + 2", "2 + 4x"],
+                "hint": "Build it in pieces, write the two-copies part first, then tack the extra 4 on at the end."
+              }
+            }
           ]
         },
         "continueLabel": "Let's practice"
@@ -130,17 +184,17 @@
           "expectedTokens": ["3x", "+", "2"],
           "correctAnswer": "3x + 2"
         },
-        "hint": "First write three times a number. Then add two more.",
+        "hints": [
+          "This phrase has two parts, so build them in order.",
+          "Start with three times a number, the multiply part.",
+          "Then tack on two more by adding 2 at the end."
+        ],
         "feedback": {
-          "correct": "Exactly! Main part first (3x), then \"two more\" adds 2 → 3x + 2. Built it perfectly.",
+          "correct": "Exactly! 3x first, then \"two more\" adds 2: 3x + 2.",
           "incorrect": [
             "Build it in order: three times a number, then two more.",
-            "Translate in pieces: the times-a-number part first, then add the two more."
+            "Translate in pieces: the times part first, then add two more."
           ]
-        },
-        "explanation": {
-          "title": "Build expressions in pieces",
-          "body": "Translate a phrase one piece at a time and assemble the parts in the order the words give them."
         }
       }
     ],
@@ -154,7 +208,7 @@
         "correctIndex": 2,
         "feedback": {
           "correct": "Yes, \"minus 4\" means subtract, so x - 4.",
-          "incorrect": ["Use x for the number, then subtract 4."]
+          "incorrect": ["Which operation does the word \"minus\" tell you to use?"]
         }
       },
       {
@@ -166,7 +220,12 @@
         "correctIndex": 0,
         "feedback": {
           "correct": "Right, 2x for \"two times,\" then +1.",
-          "incorrect": ["Two times x is 2x. Then add 1."]
+          "incorrect": ["Take it one piece at a time: the \"times\" part, then the \"plus\" part."]
+        },
+        "followUp": {
+          "prompt": "What if it said \"two times a number minus 1\" instead? How would the expression change?",
+          "answer": "It becomes 2x - 1",
+          "why": "The word minus makes that last piece a subtraction, so the + 1 turns into - 1 while 2x stays the same."
         }
       },
       {
@@ -178,7 +237,12 @@
         "correctIndex": 1,
         "feedback": {
           "correct": "Exactly, \"more than\" adds, so x + 5.",
-          "incorrect": ["More than means add 5 to the number."]
+          "incorrect": ["Does \"more than\" tell you to add or subtract?"]
+        },
+        "followUp": {
+          "prompt": "What if it said \"5 times a number\" instead of \"5 more than a number\"? How would the expression change?",
+          "answer": "It becomes 5x",
+          "why": "Times means equal copies, so you multiply to get 5x instead of adding to get x + 5."
         }
       }
     ]

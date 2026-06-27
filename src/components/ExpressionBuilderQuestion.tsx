@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import type { ExpressionBuilderStep } from '../types/lesson';
 import { renderPrompt } from '../lib/renderPrompt';
 import FeedbackBanner from './FeedbackBanner';
-import StepActions from './StepActions';
+import StepActions, { type StepHint } from './StepActions';
 import { Button } from './ui';
 
 type ExpressionBuilderQuestionProps = {
@@ -10,7 +10,7 @@ type ExpressionBuilderQuestionProps = {
   submitted: boolean;
   feedback: { ok: boolean; message: string } | null;
   allowRetry: boolean;
-  hint?: string;
+  hint?: StepHint;
   onSubmit: (tokens: string[]) => void;
   onContinue: () => void;
   onTryAgain: () => void;
@@ -69,8 +69,9 @@ export default function ExpressionBuilderQuestion({
     setDraggingTokenId(null);
   };
 
+  // Keep the learner's built expression on a retry so they can adjust it instead of
+  // starting over. The explicit Reset button still clears all.
   const handleTryAgain = () => {
-    setSelectedTokenIds([]);
     setDraggingTokenId(null);
     submittingRef.current = false;
     onTryAgain();

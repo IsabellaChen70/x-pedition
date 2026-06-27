@@ -22,16 +22,23 @@ export type MapSection = {
   stops: MapStop[];
   treasureUnlocked: boolean;
   onOpenTreasure?: () => void;
+  /** Every stop cleared but the capstone Final Challenge not yet passed. */
+  challengeReady?: boolean;
+  onStartChallenge?: () => void;
 };
 
 type TreasureMapProps = {
   sections: MapSection[];
+  /** Paint the parchment-map image + wash behind the trail. Off when a parent
+   *  already paints one continuous map backdrop behind the whole screen. */
+  backdrop?: boolean;
 };
 
-// A single trail that weaves gently down the center, one stop per row, with
-// each section's treasure centered as a clear cap at its end.
-const ROW_GAP = 110;
-const ROW_GAP_MOBILE = 150;
+// A single trail that weaves gently down the center, one stop per row, with each
+// section's treasure centered as a clear cap at its end. The row gap leaves room
+// for a stop's label and progress chip so they don't reach into the next stop.
+const ROW_GAP = 128;
+const ROW_GAP_MOBILE = 158;
 const TOP_PAD = 110;
 const BOTTOM_PAD = 80;
 const WEAVE = 18; // gentle horizontal weave, in % of width
@@ -44,7 +51,7 @@ type Item =
 /** One continuous, scrollable trail that snakes top-to-bottom through every
  *  lesson, dropping a treasure at the end of each section. Section names ride
  *  down the left edge as ribbon banners. */
-export default function TreasureMap({ sections }: TreasureMapProps) {
+export default function TreasureMap({ sections, backdrop = true }: TreasureMapProps) {
   // Wider vertical spacing on phones, where the trail is a narrow single column.
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches,
@@ -99,15 +106,21 @@ export default function TreasureMap({ sections }: TreasureMapProps) {
   return (
     <div
       className="relative w-full"
-      style={{
-        height: `${height}px`,
-        backgroundImage: `url(${mapBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }}
+      style={
+        backdrop
+          ? {
+              height: `${height}px`,
+              backgroundImage: `url(${mapBg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }
+          : { height: `${height}px` }
+      }
     >
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-parchment-100/45" />
+      {backdrop && (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-parchment-100/45" />
+      )}
       <svg
         viewBox={`0 0 100 ${height}`}
         preserveAspectRatio="none"
@@ -158,9 +171,9 @@ export default function TreasureMap({ sections }: TreasureMapProps) {
             <Treasure
               unlocked={sections[item.sectionIndex].treasureUnlocked}
               onOpen={sections[item.sectionIndex].onOpenTreasure}
-              lockedLabel={
-                sections[item.sectionIndex].onOpenTreasure ? 'Clear every stop to open the treasure.' : undefined
-              }
+              challengeReady={sections[item.sectionIndex].challengeReady}
+              onStartChallenge={sections[item.sectionIndex].onStartChallenge}
+              lockedLabel="Clear every stop to open the treasure."
             />
           )}
         </div>
@@ -221,7 +234,7 @@ function StopNode({ stop, number }: { stop: MapStop; number: number }) {
 
       {stop.label && (
         <span className="absolute left-1/2 top-full mt-2.5 -translate-x-1/2 text-center">
-          <span className="inline-block whitespace-nowrap rounded-lg bg-parchment-50/90 px-3 py-1 text-sm font-semibold text-ink shadow-sm">
+          <span className="inline-block whitespace-nowrap rounded-lg bg-parchment-50 px-3.5 py-1.5 text-base font-bold text-ink shadow-md ring-1 ring-parchment-300">
             {stop.label}
           </span>
           {stop.progressLabel && (
@@ -262,39 +275,56 @@ function StopNode({ stop, number }: { stop: MapStop; number: number }) {
 function Treasure({
   unlocked,
   onOpen,
+  challengeReady,
+  onStartChallenge,
   lockedLabel,
 }: {
   unlocked: boolean;
   onOpen?: () => void;
+  challengeReady?: boolean;
+  onStartChallenge?: () => void;
   lockedLabel?: string;
 }) {
+  const challengeable = Boolean(challengeReady && onStartChallenge);
+  const pillLabel = challengeable && !unlocked ? 'Final Challenge' : 'Treasure';
   const inner = (
     <span className="relative flex items-center justify-center">
-      <ChestIcon unlocked={unlocked} />
+      <ChestIcon unlocked={unlocked} invite={challengeable && !unlocked} />
       <span className="absolute left-1/2 top-full mt-2 -translate-x-1/2 text-center">
         <span className="inline-block whitespace-nowrap rounded-full bg-gold-400 px-3 py-0.5 font-display text-sm font-bold text-ink shadow-sm ring-1 ring-gold-600/40">
-          Treasure
+          {pillLabel}
         </span>
       </span>
     </span>
   );
 
-  return (
-    <div>
-      {unlocked && onOpen ? (
-        <button
-          type="button"
-          onClick={onOpen}
-          aria-label="Open the treasure"
-          className="rounded-full transition duration-200 hover:drop-shadow-[0_4px_10px_rgba(231,165,42,0.55)] motion-safe:hover:-translate-y-0.5 motion-safe:hover:scale-110 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gold-300"
-        >
-          {inner}
-        </button>
-      ) : (
-        <div title={unlocked ? undefined : lockedLabel}>{inner}</div>
-      )}
-    </div>
-  );
+  if (unlocked && onOpen) {
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label="Open the treasure"
+        className="rounded-full transition duration-200 hover:drop-shadow-[0_4px_10px_rgba(231,165,42,0.55)] motion-safe:hover:-translate-y-0.5 motion-safe:hover:scale-110 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gold-300"
+      >
+        {inner}
+      </button>
+    );
+  }
+
+  if (challengeable) {
+    return (
+      <button
+        type="button"
+        onClick={onStartChallenge}
+        aria-label="Start the Final Challenge"
+        className="rounded-full transition duration-200 hover:drop-shadow-[0_4px_10px_rgba(231,165,42,0.55)] motion-safe:hover:-translate-y-0.5 motion-safe:hover:scale-110 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gold-300"
+      >
+        {inner}
+      </button>
+    );
+  }
+
+  return <div title={unlocked ? undefined : lockedLabel}>{inner}</div>;
 }
 
 function CheckIcon() {
@@ -331,11 +361,11 @@ function FlagIcon() {
   );
 }
 
-function ChestIcon({ unlocked }: { unlocked: boolean }) {
+function ChestIcon({ unlocked, invite }: { unlocked: boolean; invite?: boolean }) {
   return (
     <Chest
       variant={unlocked ? 'open' : 'closed'}
-      className={`h-20 w-auto drop-shadow-md ${unlocked ? 'motion-safe:animate-chest-bob' : ''}`}
+      className={`h-20 w-auto drop-shadow-md ${unlocked || invite ? 'motion-safe:animate-chest-bob' : ''}`}
     />
   );
 }

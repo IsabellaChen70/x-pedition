@@ -8,14 +8,41 @@
         "id": "concept-1",
         "type": "concept",
         "title": "A coefficient counts copies",
-        "body": "When the same variable shows up again and again, you can write it short with a number in front, the **coefficient**, that counts how many copies there are. Tap through.",
+        "body": "Repeated x's get a number in front, the **coefficient**, to count the copies.",
         "interaction": {
           "type": "reveal",
           "revealLabel": "Show me more",
           "steps": [
-            { "text": "Picture five identical x-blocks in a row: x + x + x + x + x." },
-            { "text": "Writing them all out is a chore, so put the count in front instead: that's 5x." },
-            { "text": "The number in front (the coefficient) just says how many x's there are. Count the copies, write the number. Your turn!" }
+            {
+              "text": "Picture five x blocks: x + x + x + x + x.",
+              "gate": {
+                "type": "fill",
+                "template": "Instead of writing every x, just put the ___ in front.",
+                "answers": ["count"],
+                "extras": ["letter", "sign"],
+                "hint": "Rather than writing out every single x, you write how many x's there are in front of one x."
+              }
+            },
+            {
+              "text": "That number in front has a name: the coefficient.",
+              "gate": {
+                "type": "fill",
+                "template": "A coefficient ___ how many x's there are.",
+                "answers": ["counts"],
+                "extras": ["hides", "adds"],
+                "hint": "The number in front is there to tell you how many copies of x you have."
+              }
+            },
+            {
+              "text": "Bundle the five x's into one term.",
+              "gate": {
+                "type": "fill",
+                "template": "Five copies of x bundle into ___.",
+                "answers": ["5x"],
+                "extras": ["x5", "x + 5"],
+                "hint": "Count how many x's there are, then write that number right in front of a single x."
+              }
+            }
           ]
         },
         "continueLabel": "Let's practice"
@@ -27,23 +54,23 @@
         "visual": { "type": "none" },
         "options": ["x + 3", "2x", "3x", "x - 3"],
         "correctIndex": 2,
-        "hint": "Just count the matching x blocks, that count goes in front of the x.",
+        "hints": [
+          "Repeated x's can be bundled into a single term.",
+          "Count how many x's are added in x + x + x.",
+          "Put that count in front of a single x."
+        ],
         "feedback": {
-          "correct": "Yes! Three copies of x bundle up into 3x, the 3 just counts them.",
+          "correct": "Yes! Three copies of x bundle into 3x, the 3 counts them.",
           "incorrect": [
             "The number in front tells how many x blocks there are.",
             "Count the x blocks, not the spaces between them."
           ]
-        },
-        "explanation": {
-          "title": "A coefficient counts copies",
-          "body": "Repeated addition of the same variable is written as one term, with the count of copies in front."
         }
       },
       {
         "id": "s2",
         "type": "tile_combine",
-        "prompt": "Simplify **2x + 3 + x**. Put the **x** tiles in the combine box and the **3** in its own box, then read the simplified expression.",
+        "prompt": "Simplify **2x + 3 + x**. Drag each tile into the box where it belongs.",
         "visual": { "type": "none" },
         "validation": {
           "totalTiles": 3,
@@ -52,24 +79,24 @@
           "tileLabel": "x",
           "distractorLabel": "3"
         },
-        "hint": "The x tiles are like terms, so they combine into one term. The 3 is a constant, a different kind of term, so it sits in its own box.",
+        "hints": [
+          "Only tiles of the same kind can be combined.",
+          "Gather the x tiles, 2x and x, into the combine box together.",
+          "Leave the plain 3 on its own since it is not an x term."
+        ],
         "feedback": {
-          "correct": "Yes! The x tiles combine into 3x and the 3 stays on its own, so 2x + 3 + x is 3x + 3.",
+          "correct": "Nice, you combined the like terms and kept the number on its own.",
           "incorrect": [
-            "Each tile goes in its matching box: the x terms together, and the plain number on its own.",
-            "Keep going: all three x tiles in the combine box, and the 3 in its own box."
+            "Each tile goes in its matching box: like terms together, number on its own.",
+            "Every x tile goes in the combine box, the number stays on its own."
           ]
-        },
-        "explanation": {
-          "title": "Combine, then carry the rest",
-          "body": "Like terms merge into one term, while a term that cannot combine carries into the answer unchanged."
         }
       },
       {
         "id": "concept-2",
         "type": "concept",
         "title": "Combine first, then solve",
-        "body": "When a puzzle has several x-blocks plus some extra weight, work in two steps: first clear the extra weight off **both** pans, then share what's left among the matching x-blocks. Try the first step.",
+        "body": "With x blocks plus extra weight, work in two steps: clear the extra off both pans, then share what's left.",
         "interaction": {
           "type": "scale_demo",
           "config": {
@@ -82,14 +109,19 @@
           },
           "value": 4,
           "actionLabel": "Take 4 lb off both pans",
-          "resultCaption": "The right pan drops from 10 to 6, leaving two equal x-blocks balancing 6. Now you'd share that 6 between the two blocks, that's the second step you'll do next."
+          "resultCaption": "Take 4 off each side: 10 becomes 6, leaving two x blocks to share 6 next.",
+          "predict": {
+            "prompt": "Predict: take 4 off each pan and the right pan reads...",
+            "options": ["6 lb", "7 lb", "14 lb"],
+            "answerIndex": 0
+          }
         },
         "continueLabel": "Let's practice"
       },
       {
         "id": "s3",
         "type": "scale_interactive",
-        "prompt": "3x plus 3 pounds balances 15 pounds. Clear the extra weight to free the x-blocks, keep both pans balanced!",
+        "prompt": "3x plus 3 pounds balances 15 pounds. Clear the extra weight, keep both pans balanced!",
         "visual": {
           "type": "scale",
           "config": {
@@ -108,28 +140,28 @@
           "expectedUnknown": 12
         },
         "followUpMc": {
-          "prompt": "Now 3x balances 12 pounds. What is one x?",
+          "prompt": "3x balances 12 pounds. What is one x?",
           "options": ["3", "4", "9", "12"],
           "correctIndex": 1,
           "feedback": {
-            "correct": "Exactly, with the extra gone, 12 splits across 3 x's, so each x is 4.",
+            "correct": "Exactly! With the extra gone, 12 splits across 3 x's, so each is 4.",
             "incorrect": [
               "Split 12 equally across the three x blocks.",
               "What number times 3 gives 12?"
             ]
           }
         },
-        "hint": "Two steps: clear the extra 3 off both sides, then share what's left among the three x's.",
+        "hints": [
+          "Clear the loose weight first, then handle the x blocks.",
+          "Take the extra 3 pounds off both pans to leave just the three x's.",
+          "Then split whatever remains evenly across the three x blocks."
+        ],
         "feedback": {
-          "correct": "Nice two-step solve, clear the 3, then share 12 across three x's. x = 4!",
+          "correct": "Nice two-step solve: clear the 3, then share what's left. x = 4!",
           "incorrect": [
             "Keep the scale balanced by removing from both sides.",
-            "Remove the extra weight first, then split the remaining weight."
+            "Remove the extra weight first, then split what's left."
           ]
-        },
-        "explanation": {
-          "title": "Combine, then solve",
-          "body": "Clear any known weight from both sides first, then a group of equal variables splits what remains."
         }
       },
       {
@@ -149,17 +181,17 @@
         },
         "options": ["2", "4", "5", "8"],
         "correctIndex": 1,
-        "hint": "Clear the +2 off both sides first, then share what's left between the two x's.",
+        "hints": [
+          "Take away the loose number before splitting the x blocks.",
+          "Subtract the 2 from both sides of x + x + 2 = 10.",
+          "Then share what is left between the two matching x's."
+        ],
         "feedback": {
-          "correct": "Yes! Clear the +2, then split what's left between the two x's. x = 4, great sequencing.",
+          "correct": "Yes! Clear the +2, then split what's left. x = 4.",
           "incorrect": [
             "Undo the +2 first.",
-            "After removing 2, two x blocks share what is left."
+            "After removing 2, the two x's share what's left."
           ]
-        },
-        "explanation": {
-          "title": "Two copies of x",
-          "body": "x + x is two copies of one value, so clear the extra weight first, then the copies share what is left."
         }
       }
     ],
@@ -195,7 +227,12 @@
         "correctIndex": 1,
         "feedback": {
           "correct": "Right, 2x + x is 3x, and 12 shared across 3 is 4.",
-          "incorrect": ["2x + x makes 3x. Then split 12 into 3 groups."]
+          "incorrect": ["Combine the x's into one term first, then share the total equally among them."]
+        },
+        "followUp": {
+          "prompt": "What if it were 2x + x = 18 instead? Would x be bigger or smaller?",
+          "answer": "Bigger",
+          "why": "The three x's now share a bigger total, so each x is bigger."
         }
       },
       {
@@ -219,6 +256,11 @@
         "feedback": {
           "correct": "Exactly, clear the 2, then share 9 across 3 x's. x = 3.",
           "incorrect": ["Remove 2 first, then divide by 3."]
+        },
+        "followUp": {
+          "prompt": "What if the extra were 5 instead of 2, so 3x + 5 = 11? Would x be bigger or smaller?",
+          "answer": "Smaller",
+          "why": "Clearing a bigger extra off both sides leaves less for the three x's to share, so x is smaller."
         }
       }
     ]

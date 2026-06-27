@@ -1,6 +1,6 @@
 {
   "id": "lesson-03",
-  "title": "Finding Unknown Values",
+  "title": "Solving for x",
   "description": "Solve one-step equations by undoing the operation while keeping both sides equal.",
   "phases": {
     "scaffolded": [
@@ -8,13 +8,13 @@
         "id": "concept-1",
         "type": "concept",
         "title": "Undo to set x free",
-        "body": "To find x, get it all alone on one pan. The trick: whatever has been done to x, do the **opposite**, and do it to **both** sides so the scale stays balanced. Tap through the toolkit.",
+        "body": "To find x, get it alone. Do the **opposite** move to both sides so the scale stays balanced.",
         "interaction": {
           "type": "reveal",
           "revealLabel": "Show me more",
           "steps": [
             {
-              "text": "Say x + 5 balances 12. A +5 is riding along with x, so undo it.",
+              "text": "x + 5 balances 12. A +5 rides with x.",
               "visual": {
                 "type": "scale",
                 "config": {
@@ -24,13 +24,34 @@
                   ],
                   "right": [{ "kind": "weight", "value": 12 }]
                 }
+              },
+              "gate": {
+                "type": "fill",
+                "template": "The opposite of adding 5 is ___ 5.",
+                "answers": ["subtracting"],
+                "extras": ["adding", "doubling"],
+                "hint": "To undo something that was added on, you take that same amount back off again."
               }
             },
             {
-              "text": "The opposite of adding 5 is subtracting 5. Take 5 off both pans and x is alone."
+              "text": "Subtract 5 from both pans to stay level.",
+              "gate": {
+                "type": "fill",
+                "template": "Take 5 off both pans and x ends up ___.",
+                "answers": ["alone"],
+                "extras": ["heavier"],
+                "hint": "Once the extra 5 is lifted away, nothing else is left sitting with x on its pan."
+              }
             },
             {
-              "text": "Same idea for every move: added → subtract, subtracted → add, multiplied → divide. Always do it to both sides."
+              "text": "Every move has an opposite that undoes it.",
+              "gate": {
+                "type": "fill",
+                "template": "The move that undoes multiplying is ___.",
+                "answers": ["dividing"],
+                "extras": ["adding", "subtracting"],
+                "hint": "Multiplying builds up equal copies, so to undo it you split the total back into equal groups."
+              }
             }
           ]
         },
@@ -52,24 +73,24 @@
         },
         "options": ["Add 4 to both sides", "Remove 4 from both sides", "Divide both sides by 4", "Change x to 9"],
         "correctIndex": 1,
-        "hint": "A 4 is being added to x. What's the opposite of adding? Do that same move to both sides.",
+        "hints": [
+          "To get x alone, undo the number that was added to it.",
+          "A 4 is added to x, so think of the opposite of adding 4.",
+          "Whatever undo you pick, do it to both pans so the scale stays fair."
+        ],
         "feedback": {
-          "correct": "Yes! Taking 4 off both sides is the move, it leaves x all by itself.",
+          "correct": "Yes! Taking 4 off both sides leaves x by itself.",
           "incorrect": [
-            "Think about the opposite of +4.",
-            "To keep balance, do the same undo step to both sides."
+            "What's the opposite of +4?",
+            "Do the same undo step to both sides."
           ]
-        },
-        "explanation": {
-          "title": "Undo addition",
-          "body": "Addition is undone by subtraction, and doing that opposite move to both sides keeps the equation true."
         }
       },
       {
         "id": "concept-2",
         "type": "concept",
         "title": "Subtract from both sides",
-        "body": "Here's the undo-by-subtracting move in action. Take the extra weight off **both** pans and watch x come out on its own.",
+        "body": "Watch the undo-by-subtracting move. Take the extra weight off both pans to free x.",
         "interaction": {
           "type": "scale_demo",
           "config": {
@@ -81,14 +102,19 @@
           },
           "value": 6,
           "actionLabel": "Take 6 lb off both pans",
-          "resultCaption": "The right pan goes from 14 to 8 and the extra 6 leaves the left, so x balances 8 by itself, x = 8 here."
+          "resultCaption": "Take 6 off each side: 14 becomes 8, so x balances 8 alone.",
+          "predict": {
+            "prompt": "Predict: take 6 off each pan and the right pan reads...",
+            "options": ["8 lb", "9 lb", "20 lb"],
+            "answerIndex": 0
+          }
         },
         "continueLabel": "Let's practice"
       },
       {
         "id": "s2",
         "type": "scale_interactive",
-        "prompt": "x plus 4 pounds balances 9 pounds. Change the scale to get x alone, keep both pans balanced!",
+        "prompt": "x plus 4 pounds balances 9 pounds. Get x alone, keep both pans balanced!",
         "visual": {
           "type": "scale",
           "config": {
@@ -109,44 +135,44 @@
           "options": ["4", "5", "9", "13"],
           "correctIndex": 1,
           "feedback": {
-            "correct": "There it is, once x stands alone, it balances 5. x = 5!",
+            "correct": "Once x stands alone, it balances 5. x = 5!",
             "incorrect": [
               "After removing 4 from 9, what remains?",
               "x is alone now, so read the remaining weight."
             ]
           }
         },
-        "hint": "Whatever you take off the left tray, take the same off the right so the scale stays fair.",
+        "hints": [
+          "The scale only stays balanced if both pans change together.",
+          "Take the extra 4 pounds off both pans to free x.",
+          "Once x is alone, read what is still on the other pan."
+        ],
         "feedback": {
-          "correct": "Balanced the whole way, and solved, x = 5. Great undoing!",
+          "correct": "Balanced the whole way, so x = 5.",
           "incorrect": [
             "Only one side changed. Keep the scale balanced.",
             "Remove 4 from both sides before choosing x."
           ]
-        },
-        "explanation": {
-          "title": "Keep both sides equal",
-          "body": "Whatever you do to one side must happen to the other, and that balance is what makes the move valid."
         }
       },
       {
         "id": "s3",
         "type": "mc",
-        "prompt": "x - 2 = 6 means x became 6 after 2 was taken away. What is x?",
+        "prompt": "x - 2 = 6 means x became 6 after losing 2. What is x?",
         "visual": { "type": "none" },
         "options": ["4", "6", "8", "12"],
         "correctIndex": 2,
-        "hint": "Something was taken away from x to land on 6. To get back to x, do the opposite.",
+        "hints": [
+          "To undo a subtraction, add the amount back on.",
+          "x dropped to 6 after losing 2, so add that 2 back.",
+          "Think what number falls to 6 when 2 is taken away."
+        ],
         "feedback": {
-          "correct": "Yes! You undid the subtraction by adding it back, so x = 8. Nice thinking.",
+          "correct": "Yes! You added it back, so x = 8.",
           "incorrect": [
             "Undo subtracting 2 by adding 2.",
             "What number becomes 6 after you take away 2?"
           ]
-        },
-        "explanation": {
-          "title": "Undo subtraction",
-          "body": "Subtraction is undone by addition, so reversing the step traces back to the original amount."
         }
       },
       {
@@ -166,17 +192,17 @@
         },
         "options": ["3", "4", "9", "12"],
         "correctIndex": 1,
-        "hint": "The three x's are identical, so they share the 12 evenly. How big is one share?",
+        "hints": [
+          "Matching x blocks each hold the same amount.",
+          "Split the 12 evenly across the three x blocks.",
+          "Think what number, added three times, builds up to 12."
+        ],
         "feedback": {
-          "correct": "Exactly! Three equal x's share 12, so each x is 4. Well shared.",
+          "correct": "Exactly! Three equal x's share 12, so each is 4.",
           "incorrect": [
             "Three x blocks share the 12 equally.",
             "What number times 3 equals 12?"
           ]
-        },
-        "explanation": {
-          "title": "Undo multiplication",
-          "body": "Multiplying means equal copies, so dividing the total among those copies recovers one of them."
         }
       }
     ],
@@ -212,6 +238,11 @@
         "feedback": {
           "correct": "Right, add the 3 back and x = 8.",
           "incorrect": ["Undo -3 by adding 3."]
+        },
+        "followUp": {
+          "prompt": "What if it were x - 6 = 5 instead? Would x be bigger or smaller?",
+          "answer": "Bigger",
+          "why": "x fell further down to land on 5, so adding the bigger amount back makes x bigger."
         }
       },
       {
@@ -234,6 +265,11 @@
         "feedback": {
           "correct": "Exactly, split 18 across 3 equal x's, so each is 6.",
           "incorrect": ["Three x blocks share 18 equally."]
+        },
+        "followUp": {
+          "prompt": "What if it were 3x = 24 instead? Would x be bigger or smaller?",
+          "answer": "Bigger",
+          "why": "A bigger total shared among the same three x's gives each one more, so x is bigger."
         }
       }
     ]

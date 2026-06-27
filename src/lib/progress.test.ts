@@ -99,4 +99,35 @@ describe('normalizeProgress', () => {
     expect(normalizeProgress(null, 'lesson-01').currentLessonId).toBe('lesson-01');
     expect(normalizeProgress(null, 'lesson-01').lastCelebratedStreak).toBe(0);
   });
+
+  it('defaults practice stats to zero for legacy docs', () => {
+    expect(normalizeProgress({ streakCount: 1 }, 'lesson-01').practice).toEqual({
+      bestLevel: 0,
+      solvedTotal: 0,
+      digsCompleted: 0,
+    });
+  });
+
+  it('preserves stored practice stats', () => {
+    expect(
+      normalizeProgress({ practice: { bestLevel: 4, solvedTotal: 12, digsCompleted: 2 } }, 'lesson-01')
+        .practice,
+    ).toEqual({ bestLevel: 4, solvedTotal: 12, digsCompleted: 2 });
+  });
+
+  it('defaults reflectionsCompleted to 0 for legacy docs', () => {
+    expect(normalizeProgress({ streakCount: 1 }, 'lesson-01').reflectionsCompleted).toBe(0);
+  });
+
+  it('preserves a stored reflectionsCompleted value', () => {
+    expect(normalizeProgress({ reflectionsCompleted: 5 }, 'lesson-01').reflectionsCompleted).toBe(5);
+  });
+
+  it('defaults finalChallengePassed to false for legacy docs', () => {
+    expect(normalizeProgress({ streakCount: 1 }, 'lesson-01').finalChallengePassed).toBe(false);
+  });
+
+  it('preserves a stored finalChallengePassed value', () => {
+    expect(normalizeProgress({ finalChallengePassed: true }, 'lesson-01').finalChallengePassed).toBe(true);
+  });
 });

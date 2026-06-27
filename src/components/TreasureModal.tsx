@@ -49,16 +49,24 @@ export default function TreasureModal({ level, totalXp, earnedBadges, onClose }:
               </div>
 
               {earnedBadges.length > 0 && (
-                <ul className="mt-4 flex flex-wrap justify-center gap-2">
-                  {earnedBadges.map((badge) => (
-                    <li
-                      key={badge.id}
-                      className="rounded-full border border-gold-400 bg-gold-300/25 px-3 py-1 text-xs font-semibold text-ink"
-                    >
-                      {badge.label}
-                    </li>
-                  ))}
-                </ul>
+                <div className="mt-5">
+                  <p className="text-center text-xs font-semibold uppercase tracking-wide text-muted">
+                    Badges earned
+                  </p>
+                  <ul className="mt-2 flex flex-wrap justify-center gap-2">
+                    {earnedBadges.map((badge) => (
+                      <li
+                        key={badge.id}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-gold-400 bg-gold-300/30 py-1 pl-1.5 pr-3 text-xs font-semibold text-ink shadow-sm"
+                      >
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gold-500 text-ink">
+                          <CheckIcon className="h-2.5 w-2.5" />
+                        </span>
+                        {badge.label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
 
               <Dialog.Close asChild>
@@ -85,4 +93,21 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function BigChest() {
   return <Chest variant="open" className="h-28 w-auto drop-shadow-[0_0_22px_rgba(231,165,42,0.5)]" />;
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 13l4 4L19 7" />
+    </svg>
+  );
 }

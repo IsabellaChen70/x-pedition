@@ -1,0 +1,323 @@
+# Brainlift: AI Decisions for X-pedition
+
+- **Owners** Isabella Chen (Primary Owner)
+- **Primary Purpose:** To document the design philosophy, implementation decisions, and lessons learned from building AI features into X-pedition, a Socratic algebra app for an anxious 7th grader. This brainlift captures what was shipped, what was rejected, and why, serving as a reference for future feature decisions and a case study in responsible AI integration in educational software.
+- **Out of Scope:**
+   - Replacing the deterministic math engine with an LLM-based one.
+   - Building a general-purpose AI chatbot or open-ended tutoring system.
+   - Curriculum decisions outside the core algebra scope for 7th grade.
+   - Backend infrastructure decisions not directly related to AI feature design.
+- **DOK 4 - Spike POVs**
+   - **SPOV 1: In 2026, the right amount of AI in an AI tutor is almost none.**
+      - The category is in an AI-maximalist arms race: route every learner-facing moment through an LLM and sell the quantity of AI as the product. The contrarian claim is the inverse. At runtime X-pedition uses the least AI it can get away with, and that makes it a better tutor, not a lesser one. The LLM is a garnish behind a verifier, never the engine; correctness, hints, and mistake diagnosis never touch it.
+      - **Solution:** the LLM is allowed in only where it is genuinely irreplaceable (judging free-text reasoning, and generating problems that are then re-verified). Everything else is deterministic and authored.
+      - **Supporting Research:** Insight 1 (LLM only as a grounded judge or generator behind a verifier); Knowledge Tree 1.1 (an LLM's output space is unbounded, so prompt engineering alone cannot guarantee answer-safety, it must be constrained externally) and 1.2 (deterministic hints beat LLM hints on both answer-safety and latency); the DOK 1 facts that an LLM hint can leak the answer, an LLM mistake explanation can misdiagnose, and a local fallback replaces generation with zero UX degradation. Project evidence: an LLM hint-rephrase and an LLM mistake-explainer were both built and then cut.
+   - **SPOV 2: Real-time AI personalization is mostly theater; dumb deterministic heuristics teach novices better.**
+      - Adaptive, LLM-personalized learning is the category's biggest selling point. The contrarian claim: most of it optimizes the wrong signal. Real-time adaptivity chases in-session performance, which the science says is a poor proxy for learning, so it can confidently push a learner the wrong way. A simple deterministic success-zone heuristic plus interleaving beats fancy AI adaptivity for a novice and is honest about what it cannot know.
+      - **Solution:** adaptivity is deterministic and coarse on purpose: climb only on quick confident first-try wins, ease after repeated misses, bias toward missed skills, aim for the success zone. No LLM anywhere in the difficulty loop.
+      - **Supporting Research:** Insight 3 (a deterministic heuristic approximates the success zone without real learner data); Knowledge Tree 2.1 (calibrating difficulty from coarse proxy signals), 6.1 (Soderstrom-Bjork: in-session speed and fluency are the least trustworthy signals of learning, which is exactly what real-time adaptivity reads), and 5.3 (Bjork: interleaving lowers in-session accuracy by design, so an adaptive system that reads the dip as failure is actively wrong).
+   - **SPOV 3: Engagement and warmth are the wrong north stars; a warm wrong answer is worse than a cold correct one.**
+      - Ed-tech optimizes for engagement metrics and delight, and LLMs get praised for sounding warm and personal. The contrarian claim: for an anxious math learner, warmth bought with unreliability is a trap. A friendly response that leaks the solution or confidently misdiagnoses the mistake does more damage than a plain, correct one. Correctness and productive friction beat warmth and engagement.
+      - **Solution:** optimize for reliability and productive struggle first. Feedback is grounded and answer-safe before it is warm; rewards are tied to genuine effort and real difficulty, not to easy wins.
+      - **Supporting Research:** Knowledge Tree 6.1 (Soderstrom-Bjork: fluency and ease are not learning) and 6.2 (Coe: lavish or easy-win praise backfires and signals low expectations); Insight 1 (an unverified LLM produces confident errors) and Insight 4 (the self-explanation judge rewards real reasoning, it does not grade for warmth). Project evidence: the AI warmth-rephrase of explanations was built and then cut because reliability mattered more.
+- **DOK 3 - Insights**
+   - **Insight 1: The LLM is best as a grounded judge or generator behind a verifier, never as a source of truth.**
+      - Every time an unverified LLM was given a learner-facing role in X-pedition, it eventually produced either an answer-leaking response or a factual error. The pattern held across hint rephrasing, mistake explanation, and early problem generation experiments. The fix in every case was the same: constrain the LLM's output space, verify the output externally, and fall back to deterministic logic when verification fails.
+      - **Source Connection:** Directly informs the architecture of `generate.ts` (LLM generates, engine verifies, local fallback), `SelfExplain.tsx` (LLM judges but cannot do math; the follow-up answer is authored), and the rejection of LLM-based hints and mistake explanations.
+      - **SPOV Connection:** Core supporting evidence for SPOV 1 and SPOV 4.
+   - **Insight 2: Misconception detection at wrong-answer time is more valuable than generic hints.**
+      - When a learner gets a wrong answer, the most useful response is not "try again" or even a generic hint, it is naming the specific mistake. "It looks like you changed only one side of the equation." This does two things: it removes the learner's confusion about what went wrong, and it seeds the adaptive system with signal about what to practice next. Generic hints leave both questions open.
+      - **Source Connection:** Powers `misconception.ts`, the "what to revisit" summary on lesson-complete and dig-complete screens, and the adaptive path's weak-skill bias in `adaptive.ts`.
+      - **SPOV Connection:** Supports SPOV 1 (no answer leaking; naming the mistake is different from giving the answer) and SPOV 3 (productive struggle continues because the learner knows what to work on, not just that they were wrong).
+   - **Insight 3: Adaptive difficulty that rewards confident, quick, first-try success and eases after repeated misses approximates the 85% success zone without needing real learner data.** *(Partially drafted; validate against real learner data when available.)*
+      - The 85% success rate target (Bjork, desirable difficulties) is a starting point. The proxy used here, difficulty climbs only on quick, confident first-try wins; eases after repeated misses, is a heuristic, not a validated signal. Effort signals like response time and attempt count are captured but not yet acted on.
+      - **Source Connection:** `adaptive.ts`, `PracticeSession.tsx`. Open question: whether to persist adaptive state across sessions.
+      - **SPOV Connection:** Relevant to SPOV 3 (keeping the learner in productive struggle, not frustration or boredom).
+   - **Insight 4: Self-explanation as a learning mechanism requires a lenient, effort-rewarding judge.** *(Partially drafted.)*
+      - The "Convince Me" feature works because it never blocks and always rewards genuine effort. A harsh judge that rejects imprecise reasoning would punish exactly the kind of tentative, exploratory thinking that an anxious learner needs to practice. The judge's job is to confirm real reasoning or nudge toward the key idea, not to grade.
+      - **Source Connection:** `SelfExplain.tsx`. The XP and Deep Thinker badge reward effort, not perfection.
+      - **SPOV Connection:** Supports SPOV 1 (no blocking, no answer-leaking) and SPOV 3 (productive struggle; the follow-up "what if" question keeps the learner thinking).
+- **Experts**
+   - **Robert Bjork** (& Elizabeth Bjork)
+      - **Main views:** Desirable difficulties, spacing, interleaving, and retrieval practice, enhance long-term retention even though they slow in-session performance. Key stat: interleaved practice produced 63% accuracy on new problems vs. 20% for blocked practice at a one-week delay.
+      - **Why Follow:** His "desirable difficulties" framework is the theoretical foundation for the 85% success-zone target and the adaptive difficulty design. His work on retrieval practice validates the mastery-check model (hint-free assessment as a retrieval event).
+      - **Locations:**
+         - **Website:** [bjorklab.psych.ucla.edu](https://bjorklab.psych.ucla.edu)
+         - **Institution:** UCLA Psychology Department
+   - **Manu Kapur**
+      - **Main views:** Productive failure, allowing learners to struggle and fail before instruction, produces better conceptual understanding than direct instruction first; the struggle activates prior knowledge and creates the conditions for new knowledge to take hold.
+      - **Why Follow:** Directly supports SPOV 3 (productive struggle). His work explains why the open chatbot is dangerous (it bypasses the struggle) and why hint escalation that delays the full answer is pedagogically correct.
+      - **Locations:**
+         - **Website:** [productivefailure.com](https://www.productivefailure.com/)
+         - **Institution:** ETH Zurich
+   - **John Sweller**
+      - **Main views:** Cognitive load theory; working memory is limited and easily overloaded; goal-free students made 4-6x fewer errors than means-ends problem solvers.
+      - **Why Follow:** Rationale for instant hints and worked examples instead of letting a learner grind. Open chatbot adds extraneous cognitive load; bounded, single-problem interactions minimize it.
+      - **Locations:**
+         - **Institution:** UNSW Sydney
+         - **Foundational paper:** Sweller (1988), *Cognitive Science*
+   - **Paul Kirschner** (& Clark, Sweller)
+      - **Main views:** Half a century of studies favor strong guidance over discovery for novices; unguided (minimally guided) instruction actively breeds misconceptions rather than correcting them.
+      - **Why Follow:** The foundational case for scaffolded lessons, rejection of the chatbot, and misconception detection. Kirschner et al. (2006) is the most-cited single paper backing "guided-first" ed-tech design.
+      - **Locations:**
+         - **Institution:** Open University of the Netherlands
+         - **Full PDF:** [Kirschner et al. (2006)](https://research.ou.nl/ws/files/1015152/Why%20minimal%20guidance%20during%20instruction%20does%20not%20work.pdf)
+   - **Barak Rosenshine**
+      - **Main views:** 10 evidence-based principles of instruction including small steps, frequent checking, worked models, scaffolds that fade, high success rates (~80%), and asking students to explain their reasoning.
+      - **Why Follow:** His principles read like a feature list for X-pedition. His empirical anchor for optimal success rate (~80%; 82% vs. 73%) is a direct data point for the open question about the 85% target.
+      - **Locations:**
+         - **Paper:** "Principles of Instruction" (2012), *American Educator*
+         - **PDF:** [Rosenshine (2012)](https://www.aft.org/sites/default/files/Rosenshine.pdf)
+   - **John Dunlosky** (et al.)
+      - **Main views:** Of 10 study techniques evaluated, only practice testing and distributed practice earned "high utility." Self-explanation and interleaving are "moderate." Rereading and highlighting are low-utility.
+      - **Why Follow:** Directly validates the two core mechanics: mastery check = practice testing (high utility); Daily Dig = distributed practice (high utility).
+      - **Locations:**
+         - **Paper:** Dunlosky et al. (2013), *Psychological Science in the Public Interest*
+         - **Full PDF:** [Dunlosky et al. (2013)](https://www.academia.edu/13564364/Improving_Students_Learning_With_Effective_Learning_Techniques)
+   - **Henry Roediger III** (& Karpicke)
+      - **Main views:** The testing effect: learners who are tested outperform those who restudy at a one-week delay, even though learners undervalue testing and prefer restudying.
+      - **Why Follow:** The theoretical backbone of making retrieval structural and non-optional in the app.
+      - **Locations:**
+         - **Paper:** Roediger & Karpicke (2006), *Psychological Science*
+         - **PDF:** [Roediger & Karpicke (2006)](https://journals.sagepub.com/doi/pdf/10.1111/j.1467-9280.2006.01693.x)
+   - **Nicholas Soderstrom** (& Bjork)
+      - **Main views:** Learning is not performance. In-the-moment speed and fluency are the least trustworthy signals of durable learning.
+      - **Why Follow:** The strongest justification for effort-aware difficulty. A slow correct answer should not trigger a difficulty increase; interleaving lowers in-session accuracy by design.
+      - **Locations:**
+         - **Paper:** Soderstrom & Bjork (2015), *Perspectives on Psychological Science*
+         - **PDF:** [Soderstrom & Bjork (2015)](https://bjorklab.psych.ucla.edu/wp-content/uploads/sites/13/2016/11/soderstorm_ra_learningvsperformance.pdf)
+   - **Rob Coe** (et al., Sutton Trust)
+      - **Main views:** Great teaching requires pedagogical content knowledge (especially spotting misconceptions); teachers of 7th/8th graders are "barely above chance" at identifying misconceptions; lavish praise can backfire.
+      - **Why Follow:** Validates misconception detection as high-leverage. Also a warning for gamification: badges must reward reasoning effort, not easy wins.
+      - **Locations:**
+         - **Paper:** Coe et al. (2014), *What Makes Great Teaching?*, Sutton Trust
+         - **Correct PDF:** [Coe et al. (2014)](https://suttontrust.com/wp-content/uploads/2014/10/What-Makes-Great-Teaching-REPORT.pdf) *(Non-www host only, www version returns the wrong PDF.)*
+   - **Harold Pashler** (et al., IES)
+      - **Main views:** Government-backed synthesis; strongest evidence rating goes to low-stakes quizzing and deep explanatory questions; quizzing must be followed by corrective feedback.
+      - **Why Follow:** Strongest evidence-grade endorsement for the mastery check and "Convince Me" specifically. The feedback requirement validates the "what to revisit" + "explain my mistake" design.
+      - **Locations:**
+         - **Paper:** Pashler et al. (2008), IES Practice Guide
+         - **Guide:** [Pashler et al. (2008)](https://ies.ed.gov/ncee/wwc/practiceguide/1)
+   - **Daniel Willingham**
+      - **Main views:** Critical thinking is domain-specific; novices fixate on surface structure; transfer of a method to a new cover story occurs only ~19% of the time.
+      - **Why Follow:** A QA criterion for AI-generated problems: vary the story structure, not just the numbers, or learners memorize templates instead of algebra.
+      - **Locations:**
+         - **Paper:** Willingham (2007), *American Educator*
+         - **PDF:** [Willingham (2007)](https://www.aft.org/sites/default/files/media/2014/Crit_Thinking.pdf)
+   - **Michelene Chi**
+      - **Main views:** The self-explanation effect: prompting learners to explain to themselves why a correct or worked step is right produces deeper understanding and better transfer than studying the same material without explaining. In the original study, prompted self-explainers gained more than unprompted readers, with the largest advantage on inference questions that went beyond the literal text. The effect has since held up in meta-analysis (Bisra et al. 2018, g around 0.55) and is strong for procedural domains like algebra.
+      - **Why Follow:** The foundational evidence for "Convince Me." It establishes that self-explanation works best after a correct step (you explain why something right is right), which is exactly why X-pedition gates the prompt to after a correct mastery answer rather than using it as remediation, and why the judge is built to reward genuine reasoning rather than to grade.
+      - **Locations:**
+         - **Paper:** Chi, de Leeuw, Chiu & LaVancher (1994), *Cognitive Science*
+         - **Meta-analysis:** Bisra, Liu, Nesbit, Salimi & Winne (2018), *Educational Psychology Review*
+- **DOK 2 - Knowledge Tree**
+   - **1. AI Design Principles for Educational Software**
+      - **1.1: The Role of Verification in LLM-Assisted Ed-Tech**
+         - **Source:** X-pedition development log and feature iteration (internal)
+            - **DOK 1 - Facts:**
+               - LLM-generated hints can phrase correct mathematical moves in ways that reveal the answer to the learner.
+               - LLM-based mistake explanations can misidentify the learner's error type, producing explanations that contradict the actual math.
+               - A local deterministic fallback can replace LLM problem generation with zero UX degradation when the LLM call fails or is disabled.
+               - Running an LLM call on every hint request adds latency (1-2+ seconds) and per-request cost not present in deterministic alternatives.
+               - A verifier (algebra engine) can check LLM-generated problems for correctness, solvability, and curriculum fit before they reach the learner.
+            - **DOK 2 - Summary & Analysis:** The core lesson from X-pedition's iteration is that LLMs in ed-tech must be constrained at the output level, not just the prompt level. Prompt engineering alone is insufficient to guarantee answer-safety because the LLM's output space is unbounded. The solution is architectural: treat the LLM as a proposal generator and use a deterministic system as the final gatekeeper. This pattern, LLM generates, engine verifies, deterministic fallback, is reusable for any content-generation feature in an educational context. It also means the LLM can be upgraded, swapped, or turned off without changing the learner experience.
+      - **1.2: Socratic Hint Design: Escalation Without Answer-Leaking**
+         - **Source:** X-pedition `hint.ts`, `StepActions.tsx` (internal implementation)
+            - **DOK 1 - Facts:**
+               - A three-level hint escalation (concept to move to next step) covers the majority of learner stuck-states without stating the answer.
+               - Deterministic hint delivery is instant; LLM-based hint delivery adds 1-2+ seconds of latency.
+               - Authored hints can be audited for answer-safety by a human reviewer; LLM hints cannot be exhaustively audited.
+               - Hints are scaffolded-practice-only; mastery check is hint-free by contract.
+               - Misconception-specific fix-steps (from `misconception.ts`) override generic hints when a wrong-answer diagnosis is available.
+            - **DOK 2 - Summary & Analysis:** The Socratic constraint, never state the answer, is simple to state and difficult to guarantee with an LLM. The hint system solves this by removing the LLM from the loop entirely for hint delivery. The escalation structure (concept first, then move, then next step) follows the Socratic pattern: give the learner the most context-free nudge first, and only provide more specific guidance if they remain stuck. The mastery-check carve-out (no hints) ensures that mastery signals reflect actual unassisted knowledge, not scaffolded performance.
+      - **1.3: Misconception Detection and Adaptive Feedback**
+         - **Source:** X-pedition `misconception.ts`, lesson-complete and dig-complete screen implementations (internal)
+            - **DOK 1 - Facts:**
+               - Common algebra misconceptions (e.g., operating on only one side of an equation, sign errors in distribution) are enumerable and can be pattern-matched from the learner's wrong-answer choice.
+               - Naming the misconception at wrong-answer time is both more informative and less answer-leaking than a generic "not quite" response.
+               - Misconception signals feed the adaptive path to bias future practice toward the identified weak skill.
+               - The "what to revisit" summary aggregates misconception signals across the session and surfaces them on lesson-complete and dig-complete screens.
+            - **DOK 2 - Summary & Analysis:** Misconception detection is one of the highest-leverage features in the app because it converts a wrong answer from a dead end into a learning signal. The pattern-matching approach works because algebra misconceptions at the 7th-grade level are well-characterized, students make predictable errors. The key design principle is that the diagnosis must be grounded in the learner's actual choice, not a generic error category. This is why the "explain my mistake" feature (`solution.ts`) substitutes the learner's literal answer back into the problem's math, it produces an explanation that is specific, verifiable, and impossible to contradict.
+   - **2. Adaptive Learning Design**
+      - **2.1: Difficulty Calibration Without Real Learner Data**
+         - **Source:** X-pedition `adaptive.ts`, `PracticeSession.tsx` (internal); Bjork (desirable difficulties) indirect reference
+            - **DOK 1 - Facts:**
+               - The 85% success-rate target (Bjork) is a well-supported heuristic for keeping learners in a productive challenge zone.
+               - Proxy signals for confidence and effort, response time, first-try vs. multi-attempt, can approximate direct confidence ratings.
+               - Difficulty climbs only on quick, confident, first-try wins; eases after repeated misses.
+               - The Daily Dig biases toward skills missed on the mastery check and during the current session.
+               - Adaptive state is currently session-only; cross-session persistence is an open question.
+            - **DOK 2 - Summary & Analysis:** The adaptive difficulty system is intentionally conservative: it uses coarse signals (quick first-try wins vs. repeated misses) rather than fine-grained confidence ratings or response-time curves. This is appropriate for a v1 system without real learner validation data. The 85% target is a starting point, the actual optimal success rate for a math-anxious 7th grader may be higher (more support) than for a confident learner. The adaptive path's weak-skill bias follows spaced-retrieval principles without requiring an explicit spaced-repetition scheduler.
+      - **2.2: Self-Explanation as a Learning Mechanism**
+         - **Source:** X-pedition `SelfExplain.tsx` (internal); self-explanation effect literature (indirect reference)
+            - **DOK 1 - Facts:**
+               - Self-explanation (asking learners to articulate why a correct answer works) produces stronger learning outcomes than additional practice alone (Chi et al., 1994).
+               - The self-explanation effect is particularly strong for procedural tasks like algebra.
+               - A lenient judge that confirms genuine reasoning outperforms a strict judge that rejects imprecise language, especially for anxious learners.
+               - The "Convince Me" feature appears on the 2nd and 3rd mastery questions, after a correct answer, not as a remediation tool.
+               - The follow-up "what if" question is authored; the correct answer is authored; the LLM confirms the learner's response against the authored answer.
+            - **DOK 2 - Summary & Analysis:** Self-explanation is the one feature in X-pedition that genuinely requires an LLM, because assessing free-text reasoning cannot be reliably reduced to rule-matching. The key design constraints follow directly from the research: (1) self-explanation should follow correct answers, not precede them, to avoid frustration; (2) the judge must be lenient enough to reward genuine but imprecise reasoning; (3) the feature must never block progress. The authored "what if" follow-up is a particularly elegant solution to the LLM-does-math problem: it creates the appearance of a dynamic mathematical follow-up, but the correct answer is known and authored, so the LLM's only job is to compare the learner's text to that answer, a classification task, not a math task.
+   - **3. Security and Infrastructure**
+      - **3.1: API Key Management and the AI-Off Fallback**
+         - **Source:** X-pedition deployment configuration, Firebase Cloud Functions setup (internal)
+            - **DOK 1 - Facts:**
+               - The OpenAI API key is never sent to the browser: local dev uses a gitignored `.env` file; production calls go through auth-gated Firebase Cloud Functions.
+               - `VITE_AI_GENERATION` env var toggles AI problem generation; default is off in production.
+               - With `VITE_AI_GENERATION=false`: deterministic hints, misconception feedback, grounded mistake explanations, local practice problems, and encouraging self-explanation close all function normally.
+               - AI problems are prefetched during a session so that the learner never waits for a generation call.
+               - The first dig problem is always a local problem (instant); AI problems stream in via prefetch.
+            - **DOK 2 - Summary & Analysis:** The AI-off fallback is not a degraded mode, it is a fully functional app. This was a deliberate architectural choice: because the LLM is layered on top of a deterministic core (rather than replacing it), turning AI off simply removes the generative features without breaking any core learning loop. The key management approach (server-side secret via Cloud Functions) is the minimum viable security posture for a client-rendered app. The prefetch strategy for AI problems solves the latency problem at the cost of some wasted generation calls, an acceptable trade-off for a learner-facing feature where wait time has pedagogical cost.
+   - **4. Guided Instruction and Cognitive Load**
+      - **4.1: Why Novices Need Guidance, Not Discovery**
+         - **Source:** Kirschner, Sweller & Clark (2006). "Why Minimal Guidance During Instruction Does Not Work." *Educational Psychologist, 41*(2). [Full PDF](https://research.ou.nl/ws/files/1015152/Why%20minimal%20guidance%20during%20instruction%20does%20not%20work.pdf)
+            - **DOK 1 - Facts:**
+               - Half a century of empirical studies favor strong instructional guidance over minimally guided or discovery-based approaches for novice learners.
+               - Unguided learning does not just fail to produce learning, it actively produces and reinforces misconceptions.
+               - Working memory can only hold ~4 items simultaneously; unguided problem-solving fills it with search strategies instead of content schemas.
+               - Novices lack the prior knowledge structures that make discovery productive; experts can use discovery because they have schemas to guide exploration.
+            - **DOK 2 - Summary & Analysis:** This paper is the foundational case for the entire X-pedition architecture. Every scaffolding decision (escalating hints, worked examples, authored feedback, no open chatbot) follows from the principle that novice algebra learners need explicit guidance to form correct schemas. The misconception detection feature is especially well-grounded here: unguided learning breeds misconceptions, and the app's job is to catch and correct them at the moment they form. The chatbot rejection is a direct application: an open-ended chat interface is a minimally guided learning environment.
+      - **4.2: Cognitive Load and the Worked-Example Effect**
+         - **Source:** Sweller, J. (1988). "Cognitive Load During Problem Solving: Effects on Learning." *Cognitive Science, 12*(2), 257-285. [Link](https://onlinelibrary.wiley.com/doi/10.1207/s15516709cog1202_4)
+            - **DOK 1 - Facts:**
+               - Goal-free students (no specific end-state to reach) made 4-6x fewer errors than means-ends problem solvers in Sweller's experiments.
+               - Worked examples dramatically reduce cognitive load for novices by eliminating the need to search for problem-solving moves.
+               - The cognitive load imposed by unguided problem-solving consumes the working memory needed to build schemas, the mechanism behind explicit instruction's superiority.
+               - Extraneous cognitive load (from irrelevant problem features or confusing presentation) competes with the intrinsic load of the content itself.
+            - **DOK 2 - Summary & Analysis:** Sweller provides the working-memory mechanism that explains why instant hints beat LLM hints on pedagogical grounds, not just latency grounds. A kid stuck on a problem is already at high intrinsic load, adding a 1-2 second wait and then processing a warmly-worded-but-ambiguous LLM hint adds extraneous load at the worst moment. The escalating hint structure (concept to move to next step) manages intrinsic load progressively: give the lightest nudge first, add more only if needed, and always keep the learner in the driver's seat of the solving process.
+      - **4.3: Rosenshine's Principles as a Feature Checklist**
+         - **Source:** Rosenshine, B. (2012). "Principles of Instruction." *American Educator, 36*(1). [PDF](https://www.aft.org/sites/default/files/Rosenshine.pdf)
+            - **DOK 1 - Facts:**
+               - Rosenshine's 10 principles include: begin with short review, present new material in small steps, ask many questions to check understanding, provide models/worked examples, guide student practice, achieve high success rate (~80%), provide scaffolds that fade, require independent practice, monitor students, and engage students in weekly/monthly review.
+               - Effective teachers achieved ~82% correct response rates; less effective teachers ~73%. The optimal success rate is approximately 80%.
+               - "Completion problems" (partially worked examples) are a research-backed intermediate between full worked examples and independent problem solving.
+               - Asking students to explain their reasoning is a core principle, validating the "Convince Me" design.
+            - **DOK 2 - Summary & Analysis:** Rosenshine reads like a retrospective spec for X-pedition's feature set. Small steps to hint escalation. Models/worked examples to lesson introduction. Check for understanding to mastery check. Scaffolds that fade to hints available in practice but absent in mastery. Ask students to explain to "Convince Me." The 80% success rate anchor is the most actionable data point for the open question about the 85% target: the research suggests the right number may be closer to 80% than 85%, and the 7th-grade / math-anxious population may need even more support. Rosenshine's "completion problems" are a research-backed middle path for the worked-example timing tension.
+   - **5. Retrieval Practice and Spacing**
+      - **5.1: Practice Testing and Distributed Practice: The High-Utility Techniques**
+         - **Source:** Dunlosky, J., et al. (2013). "Improving Students' Learning With Effective Learning Techniques." *Psychological Science in the Public Interest, 14*(1). [Full PDF](https://www.academia.edu/13564364/Improving_Students_Learning_With_Effective_Learning_Techniques)
+            - **DOK 1 - Facts:**
+               - Of 10 study techniques evaluated, only practice testing and distributed practice earned "high utility" ratings based on the evidence base.
+               - Self-explanation and interleaved practice received "moderate utility" ratings, genuinely effective, but with a weaker evidence base than the top two.
+               - Rereading and highlighting, the most common student self-study techniques, received "low utility" ratings.
+               - Utility ratings were based on the breadth of conditions under which benefits have been demonstrated, not just effect size.
+            - **DOK 2 - Summary & Analysis:** This paper directly validates the two core X-pedition mechanics. The mastery check is practice testing (high utility). The Daily Dig is distributed practice (high utility). The self-explanation feature ("Convince Me") is moderate utility, genuinely supported, but should be positioned as a complement to the high-utility mechanics, not a replacement. The framing matters for how the app's evidence base is communicated: the mastery check and Daily Dig can be stated as strongly evidence-backed; self-explanation and interleaving are "moderately" supported.
+      - **5.2: The Testing Effect**
+         - **Source:** Roediger, H. L., & Karpicke, J. D. (2006). "Test-Enhanced Learning." *Psychological Science, 17*(3). [PDF](https://journals.sagepub.com/doi/pdf/10.1111/j.1467-9280.2006.01693.x) *(Note: numbers from established knowledge; Cloudflare wall blocked fresh read.)*
+            - **DOK 1 - Facts:**
+               - At a one-week delay, learners who were tested outperformed those who restudied the same material.
+               - Learners systematically undervalue testing and prefer restudying, the strategy that produces better in-session performance but worse long-term retention.
+               - The testing effect is robust across content types, ages, and test formats.
+            - **DOK 2 - Summary & Analysis:** The testing effect provides the core rationale for making retrieval structural and non-optional in the app. A learner, left to their own preferences, would likely choose to reread the lesson rather than take a mastery check. The app overrides that preference correctly: the mastery check is the learning event, not just a gate. The hint-free mastery check is especially well-grounded here, the retrieval event must be a genuine retrieval attempt, not a scaffolded performance.
+      - **5.3: Spacing and Interleaving Effects**
+         - **Source:** Bjork, R. A., & Bjork, E. L. (2011). "Making Things Hard on Yourself, But in a Good Way." In *Psychology and the Real World*. [PDF](https://bjorklab.psych.ucla.edu/wp-content/uploads/sites/13/2016/04/EBjork_RBjork_2011.pdf)
+            - **DOK 1 - Facts:**
+               - Interleaved practice produced 63% accuracy on new problems one week later vs. 20% for blocked (massed) practice, a 3x advantage.
+               - Spacing is one of the most well-replicated findings in cognitive psychology.
+               - The conditions that produce slow, effortful in-session performance (spacing, interleaving) are the same conditions that produce strong long-term retention.
+               - Learners consistently prefer blocked practice because it feels easier, but feeling easier does not mean learning more.
+            - **DOK 2 - Summary & Analysis:** The 63% vs. 20% stat is one of the most striking in the literature, and it's from a math context, directly applicable to X-pedition. The Daily Dig's interleaving of skills from different lessons is directly grounded in this result. The implication for adaptive difficulty is important: interleaving lowers in-session accuracy by design, so the adaptive system must not misread an interleaved-session accuracy dip as the learner struggling, it may actually be the sign of a well-designed session.
+      - **5.4: The IES Evidence Synthesis**
+         - **Source:** Pashler, H., et al. (2008). *Organizing Instruction and Study to Improve Student Learning.* IES Practice Guide. [Guide](https://ies.ed.gov/ncee/wwc/practiceguide/1)
+            - **DOK 1 - Facts:**
+               - Low-stakes quizzing received the strongest evidence rating in the IES guide.
+               - Deep explanatory questions (asking students to explain why and how, not just what) also received a strong rating.
+               - Spacing across sessions and interleaving of worked examples with practice received moderate ratings.
+               - The guide recommends that quizzing always be followed by corrective feedback.
+            - **DOK 2 - Summary & Analysis:** The IES guide's strongest endorsements align precisely with the mastery check (low-stakes quizzing) and "Convince Me" (deep explanatory questions). The feedback requirement is worth noting: the hint-free mastery check must be understood as a retrieval event that is always followed by feedback, the "what to revisit" summary and "explain my mistake" features satisfy this. Without that feedback loop, retrieval practice is less effective. This is an argument for ensuring the feedback path from mastery check to "what to revisit" is always surfaced.
+   - **6. Learning vs. Performance and Gamification**
+      - **6.1: Learning is not Performance**
+         - **Source:** Soderstrom, N. C., & Bjork, R. A. (2015). "Learning Versus Performance." *Perspectives on Psychological Science, 10*(2). [PDF](https://bjorklab.psych.ucla.edu/wp-content/uploads/sites/13/2016/11/soderstorm_ra_learningvsperformance.pdf)
+            - **DOK 1 - Facts:**
+               - In-the-moment speed and fluency are the least trustworthy signals of durable learning.
+               - Fast, confident in-session answers can be recalled worse at a delayed test than slower, effortful ones.
+               - Conditions that make learning feel easy (massed practice, restudying) produce worse retention than conditions that feel effortful (spacing, interleaving, testing).
+               - Learner and teacher judgments of learning are systematically biased toward in-session performance, not long-term retention.
+            - **DOK 2 - Summary & Analysis:** This paper is the strongest theoretical justification for the effort-aware difficulty design. The rule that a slow correct answer does not trigger a difficulty increase is directly grounded here: slowness during interleaved practice is a signal of genuine cognitive engagement, not failure. The design implication for the adaptive system is critical: difficulty should be read from delayed interleaved retrieval (later mastery checks, subsequent Daily Digs), not from in-session ease. A kid breezing through a massed session may be performing, not learning.
+      - **6.2: What Makes Great Teaching and Gamification Risks**
+         - **Source:** Coe, R., et al. (2014). *What Makes Great Teaching?* Sutton Trust. [Correct PDF](https://suttontrust.com/wp-content/uploads/2014/10/What-Makes-Great-Teaching-REPORT.pdf) *(Non-www host only, www version returns the wrong PDF.)*
+            - **DOK 1 - Facts:**
+               - Great teaching requires pedagogical content knowledge (especially spotting misconceptions), high-quality instruction, and an appropriate challenge level with high success rates.
+               - Teachers of 7th/8th graders are "barely above chance" at identifying student misconceptions in mathematics.
+               - Lavish praise and extrinsic rewards can backfire: praising easy wins signals low expectations and can undermine intrinsic motivation.
+               - Effort-tied praise (praising the reasoning process, not the result) is a safer framing.
+            - **DOK 2 - Summary & Analysis:** The misconception finding is striking: the bar for misconception detection that X-pedition needs to clear is lower than expected, because human teachers often miss misconceptions too. The `misconception.ts` approach, pattern-matching from the learner's actual wrong-answer choice, encodes something that even experienced teachers often lack. The gamification warning is directly relevant: the Deep Thinker badge and XP system are correctly tied to reasoning effort ("Convince Me" completion, not just correct answers). The risk is in easy wins: if difficulty is too low, praising a correct answer signals low expectations. The 85% target and adaptive difficulty are partly a gamification-integrity mechanism, keeping challenges hard enough that rewards feel earned.
+   - **7. Surface Structure and Problem Variation**
+      - **7.1: Critical Thinking Is Domain-Specific**
+         - **Source:** Willingham, D. (2007). "Critical Thinking: Why Is It So Hard to Teach?" *American Educator.* [PDF](https://www.aft.org/sites/default/files/media/2014/Crit_Thinking.pdf)
+            - **DOK 1 - Facts:**
+               - Critical thinking is domain-specific: novices are poor at transferring reasoning skills across domains.
+               - Novices fixate on surface structure: they categorize math problems by the cover story, not by the underlying mathematical structure.
+               - Transfer of a method to a new cover story occurs only ~19% of the time for novices without explicit instruction.
+               - Expert mathematicians categorize problems by deep structure (equation type), not surface story.
+            - **DOK 2 - Summary & Analysis:** Willingham is less a feature map and more a QA criterion for AI-generated problems. If the generator produces variations that only change the numbers (e.g., "Sarah has X apples" vs. "John has X apples" with the same equation structure), learners will memorize the surface template rather than the underlying algebra. AI-generated problems must deliberately vary the cover story structure, different story contexts, different unknown positions, different real-world framings, to force the learner to engage with the deep algebraic structure. This is a quality criterion for the `generate.ts` prompt and the curriculum guard.
+- **Evidence Synthesis: reading the experts as one body of evidence**
+   - *(The Experts and Knowledge Tree above treat each paper on its own. This section analyzes them together: where independent lines of research converge, how strong the evidence is for each feature, and where the experts disagree.)*
+   - **Where the evidence converges (highest confidence)**
+      - **Guide novices; do not make them discover.** Kirschner-Sweller-Clark, Sweller, Rosenshine, and Coe reach this independently, and Coe lists discovery learning among popular-but-ineffective practices. This is the strongest single mandate in the set and the direct basis for scaffolding every skill and refusing an open chatbot.
+      - **Practice testing and distributed practice are the two best-evidenced techniques, full stop.** Dunlosky rates only these two "high utility" out of ten; Pashler's IES guide gives low-stakes quizzing its strongest grade; Roediger-Karpicke supply the mechanism (the testing effect). X-pedition's two load-bearing mechanics, the hint-free mastery check and the spaced Daily Dig, are exactly these two.
+      - **In-session performance is a weak proxy for learning.** Soderstrom-Bjork and Bjork-Bjork show that fast, fluent, error-free practice often predicts worse long-term retention than slower, effortful practice. This is the evidence base for effort-aware difficulty (a slow correct answer does not raise the level) and for not reading an interleaving accuracy dip as the learner failing.
+      - **Make learners explain their reasoning.** Pashler grades deep explanatory questions "strong"; Chi et al. is the foundational self-explanation result; Dunlosky rates self-explanation "moderate." Together they support "Convince Me," with the honest note that the technique is moderate, not top-tier, evidence and should complement (not replace) the high-utility mechanics.
+   - **Evidence-grade map (feature: strongest support: caveat)**
+      - **Mastery check (hint-free retrieval):** Roediger-Karpicke and Pashler (strongest grade) and Dunlosky (high utility). Caveat: Pashler stresses retrieval needs corrective feedback, met here by "what to revisit" and "explain my mistake."
+      - **Daily Dig (spaced, interleaved practice):** Dunlosky (high utility) and Bjork-Bjork (interleaving 63% vs 20% on new problems at one week) and Pashler (moderate for spacing and interleaving). Caveat: interleaving lowers in-session accuracy by design, so the adaptive ease-down must not over-correct.
+      - **Scaffolded teaching and Socratic hints:** Kirschner-Sweller-Clark, Sweller, and Rosenshine (small steps, models, scaffolds that fade). Convergent and strong.
+      - **"Show me how" worked examples:** Sweller's worked-example effect and Rosenshine (provide models). Caveat: the literature favors examples for novices when stuck, but X-pedition gates them to after a correct answer (generation effect, Bjork). See Design Tensions; Rosenshine's completion problems are the research-backed middle path.
+      - **Adaptive difficulty (~85% target, effort-aware):** Rosenshine (~80% optimal success rate) and Bjork (desirable difficulties) and Soderstrom-Bjork (fluency is not learning). Caveat: 85% is a heuristic; Rosenshine's empirical anchor is closer to 80%, and a math-anxious 7th grader may need more support. Not yet validated on real learners.
+      - **Misconception detection and "explain my mistake":** Kirschner-Sweller-Clark (unguided learning breeds misconceptions) and Coe (pedagogical content knowledge, plus the finding that teachers of this age group are barely above chance at spotting misconceptions). High leverage, and fully deterministic.
+      - **AI problem generation:** Willingham (vary the surface story, not just the numbers, or novices memorize templates). This is a quality criterion for the generator, not a learning claim on its own.
+      - **Gamification (XP, streak, badges):** no positive evidence base in these sources, and Coe warns lavish or easy-win praise can backfire. Defensible only because rewards are tied to genuine effort (the Deep Thinker badge rewards reasoning) and to real difficulty. This is the least evidence-grounded part of the design, named here as such.
+   - **Where the experts pull in different directions** (expanded in Design Tensions below)
+      - **Worked-example timing:** study-the-example for novices (Sweller, Kirschner) versus generate-first (Bjork's generation effect). X-pedition sides with generate-first and reveals the worked example only after a correct answer.
+      - **The right success rate:** Rosenshine's empirical ~80% versus the commonly cited ~85% desirable-difficulty target. Unresolved for a math-anxious 7th grader, who may need an even higher success rate to stay motivated.
+- **Design Tensions Worth Naming**
+   - *(These are places where the research and the design are in tension, worth documenting explicitly so future decisions are made with awareness, not by accident.)*
+   - **Tension 1: Worked-example timing.** The worked-example literature (Sweller, Kirschner) favors showing worked examples to novices when they're stuck. X-pedition gates "Show me how" to after a correct answer, not when stuck. This is defensible via the generation effect (Bjork: producing an answer yourself produces better retention than studying the worked version) and Rosenshine's scaffolds-that-fade principle, but it is the clearest divergence from the strict worked-example literature. Rosenshine's "completion problems" (partially worked examples) are a research-backed middle path worth considering for a future hint level.
+   - **Tension 2: Mastery check feedback requirement.** Pashler (IES guide) rates quizzing highly, but notes that retrieval practice without corrective feedback is less effective. The mastery check is hint-free, correctly, but must always be followed by feedback. The "what to revisit" summary and "explain my mistake" satisfy this, but only if the learner reaches them. If the learner exits after the check without seeing feedback, the retrieval event is incomplete. Consider whether the feedback path is sufficiently surfaced.
+   - **Tension 3: Gamification and extrinsic praise.** Coe et al. warn that lavish praise and extrinsic rewards can backfire, especially when tied to easy wins. The XP and badge system is correctly effort-tied (Deep Thinker badge rewards "Convince Me" completion, not just correctness). The risk is if difficulty is set too low, praising a correct answer on an easy problem signals low expectations. The adaptive difficulty system is partly a gamification-integrity mechanism: rewards should only feel meaningful if the challenge was real.
+   - **Tension 4: Interleaving lowers in-session accuracy by design.** Bjork & Bjork show that interleaved practice produces 3x better retention at one week, but also produces lower in-session accuracy. The Daily Dig intentionally interleaves skills across lessons. The adaptive system must not read an accuracy dip during an interleaved session as the learner failing, it may be the sign of a well-designed session. The current difficulty adjustment (eases after repeated misses) may be too aggressive if the misses are interleaving-driven rather than skill-gap-driven.
+- **What I shipped (so far)**
+   - **Socratic hint engine** (`hint.ts`, `StepActions.tsx`). Scaffolded practice only. Escalates concept to move to next step, never states the answer. Deterministic and instant.
+   - **Misconception detection** (`misconception.ts`). On a wrong answer, names the likely mistake and switches hints to that misconception's fix-steps. Signal feeds the "what to revisit" summary on lesson-complete and dig-complete screens.
+   - **"Explain my mistake"** in practice (`solution.ts`). Grounded, deterministic explanation that substitutes the learner's actual choice back into the problem's math.
+   - **Self-explanation / "Convince Me"** (`SelfExplain.tsx`). On the 2nd and 3rd mastery questions, after a correct answer, learner types why it works. Lenient, grounded LLM judge affirms real reasoning or nudges toward the key idea; authored "what if" follow-up; LLM confirms against authored answer. Rewards effort (XP, Deep Thinker badge); never blocks.
+   - **Adaptive practice path** (`adaptive.ts`, `PracticeSession.tsx`). Daily Dig leans toward weak skills; difficulty is effort-aware (climbs on quick confident first-try wins, eases after repeated misses), targeting ~85% success zone.
+   - **AI problem generation** (`generate.ts`). LLM authors fresh problems, each re-verified by engine and curriculum guard, with instant local fallback. First dig problem is always local; AI problems stream in via prefetch.
+- **What I deliberately left out (so far)**
+   - **A chatbot.** Every AI touchpoint is a single, bounded, grounded interaction tied to one problem.
+   - **LLM grading of math.** The engine is the only judge of correctness; even the self-explanation follow-up is checked against an authored answer.
+   - **In-place AI reword of feedback.** Built, then cut: swapping the shown explanation a second later read like a glitch. The instant deterministic version stays.
+   - **AI hints in the mastery check.** Mastery is a clean, hint-free assessment by contract.
+- **How it runs (and the AI-off fallback)**
+   - LLM features run on OpenAI; key never reaches the browser. Local dev uses a gitignored key stripped from production builds; deployed site calls auth-gated Firebase Cloud Functions. `VITE_AI_GENERATION` toggles AI problem generation (default off). With AI off the app is fully functional.
+- **Testing so far**
+   - `npm test`: unit tests for the math engine, generator (property tests), misconception detection, hint escalation and "no answer leaked," adaptive path, progress, badges, and a full user-flow simulation. **174 passing.**
+   - `npm run validate:content` / `lint` / `build` gates.
+   - Live OpenAI calls exercised with an ad-hoc harness during development (generated problems re-checked by the real engine; judge and follow-up checked for answer-safety).
+- **Open questions / still deciding**
+   - [ ] Cost vs. value of AI problem generation on the live site. Leaning toward keeping it gated and mostly relying on the local generator.
+   - [ ] Whether the self-explanation judge should run with AI off (right now it gives an encouraging close). Maybe a lightweight local heuristic?
+   - [ ] How aggressive adaptive difficulty should be; the 85% target is a starting point, not validated against real learner data.
+   - [ ] Whether "what to revisit" should persist across sessions (currently session-only).
+- **What's next**
+   - [ ] Decide the final list of AI features to keep on for the graded build.
+   - [ ] Tighten the self-explanation judge prompt with more 7th-grader test inputs.
+   - [ ] Capture light effort signals (response time, attempts) to inform future difficulty tuning. Not acted on yet.
+   - [ ] Flesh out this brainlift's "Lessons learned" and DOK 2 Knowledge Tree once the feature set is frozen.
+- **Lessons learned (provisional)**
+   - The LLM is best as a grounded judge or generator behind a verifier, not as the source of truth. Every time it spoke unverified (hint rephrase, mistake explanation), it eventually said something wrong or answer-leaking.
+   - Latency is a feature. Deterministic-first made hints and explanations instant, which matters more for a 7th grader than slightly warmer wording.
+   - *More to add as the project finishes.*
+- **References**
+   - Bisra, K., Liu, Q., Nesbit, J. C., Salimi, F., & Winne, P. H. (2018). Inducing self-explanation: A meta-analysis. *Educational Psychology Review, 30*(3), 703-725.
+   - Bjork, R. A., & Bjork, E. L. (2011). Making things hard on yourself, but in a good way: Creating desirable difficulties to enhance learning. In M. A. Gernsbacher et al. (Eds.), *Psychology and the Real World* (pp. 56-64). Worth Publishers. [PDF](https://bjorklab.psych.ucla.edu/wp-content/uploads/sites/13/2016/04/EBjork_RBjork_2011.pdf)
+   - Chi, M. T. H., de Leeuw, N., Chiu, M. H., & LaVancher, C. (1994). Eliciting self-explanations improves understanding. *Cognitive Science, 18*(3), 439-477.
+   - Coe, R., Aloisi, C., Higgins, S., & Major, L. E. (2014). *What makes great teaching? Review of the underpinning research.* Sutton Trust. [PDF](https://suttontrust.com/wp-content/uploads/2014/10/What-Makes-Great-Teaching-REPORT.pdf) *(Non-www host only.)*
+   - Dunlosky, J., Rawson, K. A., Marsh, E. J., Nathan, M. J., & Willingham, D. T. (2013). Improving students' learning with effective learning techniques. *Psychological Science in the Public Interest, 14*(1), 4-58. [PDF](https://www.academia.edu/13564364/Improving_Students_Learning_With_Effective_Learning_Techniques)
+   - Kapur, M. (2016). Examining productive failure, productive success, unproductive failure, and unproductive success in learning. *Educational Psychologist, 51*(2), 289-299.
+   - Kirschner, P. A., Sweller, J., & Clark, R. E. (2006). Why minimal guidance during instruction does not work. *Educational Psychologist, 41*(2), 75-86. [PDF](https://research.ou.nl/ws/files/1015152/Why%20minimal%20guidance%20during%20instruction%20does%20not%20work.pdf)
+   - Pashler, H., et al. (2008). *Organizing instruction and study to improve student learning.* IES Practice Guide. [Guide](https://ies.ed.gov/ncee/wwc/practiceguide/1)
+   - Roediger, H. L., & Karpicke, J. D. (2006). Test-enhanced learning. *Psychological Science, 17*(3), 249-255. [PDF](https://journals.sagepub.com/doi/pdf/10.1111/j.1467-9280.2006.01693.x)
+   - Rosenshine, B. (2012). Principles of instruction. *American Educator, 36*(1), 12-19. [PDF](https://www.aft.org/sites/default/files/Rosenshine.pdf)
+   - Soderstrom, N. C., & Bjork, R. A. (2015). Learning versus performance: An integrative review. *Perspectives on Psychological Science, 10*(2), 176-199. [PDF](https://bjorklab.psych.ucla.edu/wp-content/uploads/sites/13/2016/11/soderstorm_ra_learningvsperformance.pdf)
+   - Sweller, J. (1988). Cognitive load during problem solving: Effects on learning. *Cognitive Science, 12*(2), 257-285. [Link](https://onlinelibrary.wiley.com/doi/10.1207/s15516709cog1202_4)
+   - Willingham, D. T. (2007). Critical thinking: Why is it so hard to teach? *American Educator, 31*(2), 8-19. [PDF](https://www.aft.org/sites/default/files/media/2014/Crit_Thinking.pdf)

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../auth/auth-context';
 import AchievementsModal from '../components/AchievementsModal';
 import AppHeader from '../components/AppHeader';
@@ -7,6 +7,8 @@ import TreasureMap from '../components/TreasureMap';
 import type { MapSection, MapStop } from '../components/TreasureMap';
 import TreasureModal from '../components/TreasureModal';
 import { Alert } from '../components/ui';
+import mapBg from '../assets/map-bg.jpg';
+import { isPracticeEnabled } from '../lib/ai/config';
 import { computeBadges, newlyEarnedBadgeIds } from '../lib/badges';
 import type { Badge } from '../lib/badges';
 import { getCourse, getLesson, listLessons } from '../lib/content';
@@ -14,10 +16,14 @@ import {
   acknowledgeBadges,
   acknowledgeStreakCelebration,
   getCourseProgress,
+  recordFinalChallengePassed,
   resetCourseProgress,
   shouldCelebrateStreak,
 } from '../lib/progress';
 import type { CourseProgress } from '../lib/progress';
+
+const PracticeSession = lazy(() => import('../components/PracticeSession'));
+const FinalChallenge = lazy(() => import('../components/FinalChallenge'));
 
 type LessonCardStatus = 'completed' | 'current' | 'unlocked' | 'locked';
 
@@ -32,11 +38,23 @@ export default function HomePage() {
   const [resettingProgress, setResettingProgress] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showTreasure, setShowTreasure] = useState(false);
+  const [showPractice, setShowPractice] = useState(false);
+  const [showFinalChallenge, setShowFinalChallenge] = useState(false);
   const [celebrateStreak, setCelebrateStreak] = useState(false);
   const [unlockedBadges, setUnlockedBadges] = useState<Badge[]>([]);
   const badgeCelebrationShown = useRef(false);
   const completedCount = progress?.completedLessonIds.length ?? 0;
   const streakCount = progress?.streakCount ?? 0;
+  const practiceSolved = progress?.practice.solvedTotal ?? 0;
+  const practiceDigs = progress?.practice.digsCompleted ?? 0;
+  const practiceBestLevel = progress?.practice.bestLevel ?? 0;
+  const reflectionsCompleted = progress?.reflectionsCompleted ?? 0;
+  // The home "Daily Treasure Dig" reviews skills up to the furthest lesson the
+  // learner has completed; a new learner falls back to the first lesson.
+  const practiceLessonId =
+    (progress?.completedLessonIds ?? [])
+      .slice()
+      .sort((a, b) => course.lessonOrder.indexOf(b) - course.lessonOrder.indexOf(a))[0] ?? firstLessonId;
   const firstName =
     user?.displayName?.trim().split(/\s+/)[0] || user?.email?.split('@')[0] || 'Explorer';
 
@@ -52,7 +70,8 @@ export default function HomePage() {
     if (correct >= 3) perfectLessons += 1;
   }
   const XP_PER_LEVEL = 300;
-  const totalXp = completedCount * 100 + masteryCorrect * 20;
+  const totalXp =
+    completedCount * 100 + masteryCorrect * 20 + practiceSolved * 10 + reflectionsCompleted * 10;
   const level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
   const xpIntoLevel = totalXp % XP_PER_LEVEL;
   const badges = computeBadges({
@@ -61,6 +80,10 @@ export default function HomePage() {
     streak: streakCount,
     perfectLessons,
     masteryCorrect,
+    practiceSolved,
+    digsCompleted: practiceDigs,
+    bestLevel: practiceBestLevel,
+    reflectionsCompleted,
   });
 
   const getLessonProgressLabel = (lessonId: string): string | null => {
@@ -198,7 +221,20 @@ export default function HomePage() {
       progressLabel: getLessonProgressLabel(lesson.id),
     };
   });
-  const treasureUnlocked = lessons.length > 0 && completedCount >= lessons.length;
+  // The treasure now sits behind a capstone Final Challenge: clearing every
+  // lesson unlocks the challenge, and passing it unlocks the treasure itself.
+  const allLessonsDone = lessons.length > 0 && completedCount >= lessons.length;
+  const finalChallengePassed = progress?.finalChallengePassed ?? false;
+  const treasureUnlocked = allLessonsDone && finalChallengePassed;
+  const challengeReady = allLessonsDone && !finalChallengePassed;
+
+  const handleFinalChallengePassed = () => {
+    if (!user) return;
+    setProgress((prev) => (prev ? { ...prev, finalChallengePassed: true } : prev));
+    void recordFinalChallengePassed(user.uid, course.id);
+    setShowFinalChallenge(false);
+    setShowTreasure(true);
+  };
 
   // The first section is the live course; the rest preview future topics with
   // full, named trails. They have no content yet, so their stops aren't clickable.
@@ -212,6 +248,8 @@ export default function HomePage() {
       stops,
       treasureUnlocked,
       onOpenTreasure: treasureUnlocked ? () => setShowTreasure(true) : undefined,
+      challengeReady,
+      onStartChallenge: challengeReady ? () => setShowFinalChallenge(true) : undefined,
     },
     {
       id: 'inequalities',
@@ -254,11 +292,31 @@ export default function HomePage() {
         onSignOut={() => void signOut()}
       />
 
-      <main className="relative flex-1">
-        <p className="px-4 pt-5 pb-1 text-center font-display text-xl font-bold text-ink sm:pt-6 sm:text-2xl">
-          Welcome back, {firstName}
-        </p>
-        <TreasureMap sections={sections} />
+      <main
+        className="relative flex-1 bg-cover bg-top bg-no-repeat"
+        style={{
+          // The whole screen is the parchment map (a light wash is baked in for text
+          // contrast), behind the welcome bar AND the trail, one continuous surface.
+          backgroundImage: `linear-gradient(rgba(247,238,214,0.5), rgba(247,238,214,0.5)), url(${mapBg})`,
+        }}
+      >
+        <div className="px-4 pb-6 pt-6 text-center sm:pt-8">
+          <h1 className="font-display text-2xl font-bold text-ink drop-shadow-[0_1px_2px_rgba(253,248,236,0.9)] sm:text-3xl">
+            Welcome back, {firstName}!
+          </h1>
+          <p className="mt-1 text-sm font-medium text-ink/70 sm:text-base">Ready for today's adventure?</p>
+          {isPracticeEnabled() && practiceLessonId && (
+            <button
+              type="button"
+              onClick={() => setShowPractice(true)}
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-gold-400 px-5 py-2.5 text-sm font-bold text-ink shadow-md transition duration-200 hover:bg-gold-300 hover:shadow-lg motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100"
+            >
+              <ShovelIcon className="h-4 w-4" />
+              Daily Treasure Dig
+            </button>
+          )}
+        </div>
+        <TreasureMap sections={sections} backdrop={false} />
       </main>
 
       <footer className="flex items-center justify-center bg-parchment-100 px-4 py-4 text-center">
@@ -300,6 +358,46 @@ export default function HomePage() {
       {unlockedBadges.length > 0 && (
         <BadgeUnlockModal badges={unlockedBadges} onClose={() => setUnlockedBadges([])} />
       )}
+
+      {showPractice && practiceLessonId && user && (
+        <Suspense fallback={null}>
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 p-4">
+            <div className="mx-auto mt-8 max-w-2xl">
+              <PracticeSession
+                userId={user.uid}
+                courseId={course.id}
+                lessonId={practiceLessonId}
+                onExit={() => setShowPractice(false)}
+              />
+            </div>
+          </div>
+        </Suspense>
+      )}
+
+      {showFinalChallenge && user && (
+        <Suspense fallback={null}>
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 p-4">
+            <div className="flex min-h-full items-center justify-center">
+              <div className="w-full max-w-2xl">
+                <FinalChallenge
+                  onPass={handleFinalChallengePassed}
+                  onExit={() => setShowFinalChallenge(false)}
+                />
+              </div>
+            </div>
+          </div>
+        </Suspense>
+      )}
     </div>
+  );
+}
+
+function ShovelIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M10 2.5h4v2.2h-4z" />
+      <path d="M11 3.5h2v8.5h-2z" />
+      <path d="M7.8 11.5h8.4l-1.7 5.3a2.5 2.5 0 0 1-5 0z" />
+    </svg>
   );
 }

@@ -5,7 +5,7 @@
   "lessonOrder": ["lesson-01", "lesson-02", "lesson-03", "lesson-04", "lesson-05"],
   "lessons": {
     "lesson-01": {
-      "title": "Finding Unknowns",
+      "title": "Balancing Scales",
       "description": "Figure out missing amounts using balance scales, no letters yet."
     },
     "lesson-02": {
@@ -13,12 +13,12 @@
       "description": "Meet x, a name for an unknown you already know how to find."
     },
     "lesson-03": {
-      "title": "Finding Unknown Values",
+      "title": "Solving for x",
       "description": "Solve one-step equations by keeping the scale balanced."
     },
     "lesson-04": {
       "title": "Combining and Coefficients",
-      "description": "Group like shapes, then solve."
+      "description": "Group like terms, then solve."
     },
     "lesson-05": {
       "title": "Writing Expressions",

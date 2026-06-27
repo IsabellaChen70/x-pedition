@@ -1,6 +1,6 @@
 {
   "id": "lesson-01",
-  "title": "Finding Unknowns",
+  "title": "Balancing Scales",
   "description": "Equal means equal. You can find a missing amount by thinking about balance, no formulas needed.",
   "phases": {
     "scaffolded": [
@@ -8,26 +8,47 @@
         "id": "concept-1",
         "type": "concept",
         "title": "Equal means equal",
-        "body": "A balance scale is like a seesaw, it only stays level when both sides weigh exactly the same. Here's the cool part: when the shapes on a side are identical, they each carry an equal share of the weight. Tap through to see how that helps you find a mystery weight.",
+        "body": "A scale stays level only when both sides weigh the same. Identical shapes each carry an equal share.",
         "interaction": {
           "type": "reveal",
           "revealLabel": "Show me more",
           "steps": [
             {
-              "text": "Two identical circles together balance 8 pounds. The scale is level, so both sides weigh the same.",
+              "text": "Two equal circles balance 8 pounds.",
               "visual": {
                 "type": "scale",
                 "config": {
                   "left": [{ "kind": "shape", "shape": "circle", "count": 2 }],
                   "right": [{ "kind": "weight", "value": 8 }]
                 }
+              },
+              "gate": {
+                "type": "fill",
+                "template": "Level means both sides weigh the ___.",
+                "answers": ["same"],
+                "extras": ["more", "less"],
+                "hint": "A scale only sits level when neither side tips, so the two sides must weigh exactly alike."
               }
             },
             {
-              "text": "The circles are exactly the same, so neither one is heavier. They split the 8 pounds evenly between them."
+              "text": "The circles match, so neither is heavier.",
+              "gate": {
+                "type": "fill",
+                "template": "Matching circles each carry an ___ share.",
+                "answers": ["equal"],
+                "extras": ["bigger", "smaller"],
+                "hint": "The circles all match, so no one of them holds more or less, each share is the same size."
+              }
             },
             {
-              "text": "Split 8 into 2 equal groups: 8 ÷ 2 = 4. So each circle weighs 4 pounds. That's the whole trick, share the total equally. Now you try it!"
+              "text": "Split 8 into 2 equal groups to find one circle.",
+              "gate": {
+                "type": "fill",
+                "template": "Split 8 into 2 groups, so one circle is ___ pounds.",
+                "answers": ["4"],
+                "extras": ["3", "5"],
+                "hint": "Share the 8 pounds evenly across the 2 circles, then count how much sits in one group."
+              }
             }
           ]
         },
@@ -36,7 +57,7 @@
       {
         "id": "s1",
         "type": "mc",
-        "prompt": "Three identical triangles sit on one side of a scale. The other side shows 9 pounds, and the scale is balanced. How much does one triangle weigh?",
+        "prompt": "Three identical triangles balance 9 pounds. How much does one triangle weigh?",
         "visual": {
           "type": "scale",
           "config": {
@@ -46,23 +67,23 @@
         },
         "options": ["2 lb", "3 lb", "4 lb", "6 lb"],
         "correctIndex": 1,
-        "hint": "The three triangles are identical. Share the 9 pounds equally among them.",
+        "hints": [
+          "Identical triangles always carry the same weight as each other.",
+          "Split the 9 pounds into three equal shares, one for each triangle.",
+          "Picture dealing the 9 pounds out across the triangles until each has its share."
+        ],
         "feedback": {
-          "correct": "Yes! Three equal triangles split 9 evenly, so each one is 3 pounds. You've got it.",
+          "correct": "Yes! Three equal triangles split 9, so each is 3 pounds.",
           "incorrect": [
-            "Not quite, the triangles are identical, so split 9 into 3 equal groups.",
-            "When shapes match, each one gets the same share of the total. How big is one share of 9?"
+            "Not quite. Split 9 into 3 equal groups.",
+            "Matching triangles get equal shares. How big is one share of 9?"
           ]
-        },
-        "explanation": {
-          "title": "Share it out",
-          "body": "Identical shapes always carry equal weight, so matching triangles each hold the same share of the total."
         }
       },
       {
         "id": "s2",
         "type": "equal_share",
-        "prompt": "Three identical squares balance 6 pounds. Share the 6 one-pound chips equally across the 3 squares. How many pounds should each square get?",
+        "prompt": "Three identical squares balance 6 pounds. Share the 6 one-pound chips equally. How many pounds per square?",
         "visual": { "type": "none" },
         "validation": {
           "totalItems": 6,
@@ -72,24 +93,24 @@
           "groupLabel": "Square",
           "correctAnswer": "2 lb per square"
         },
-        "hint": "Try giving each square the same number of 1-pound chips.",
+        "hints": [
+          "A fair split gives every square the very same pile.",
+          "Deal the 6 chips out evenly across the three squares.",
+          "Hand out one chip per square each round until all 6 are placed."
+        ],
         "feedback": {
-          "correct": "Nice sharing! Every square got the same pile, so you've found what one square weighs.",
+          "correct": "Nice! Every square got the same pile, so that's what one weighs.",
           "incorrect": [
-            "The squares are identical, so each one needs the same number of chips.",
-            "Keep sharing until all 6 chips are used and every square has an equal pile."
+            "The squares are identical, so each needs the same number of chips.",
+            "Keep sharing until all 6 chips sit in equal piles."
           ]
-        },
-        "explanation": {
-          "title": "Split into equal shares",
-          "body": "When shapes match, a fair split gives each the same pile, and that pile is what one shape weighs."
         }
       },
       {
         "id": "concept-2",
         "type": "concept",
         "title": "Keep it fair: change both sides the same",
-        "body": "Sometimes a mystery weight sits next to a known weight. Here's the move to uncover it: take the same amount off **both** pans. The scale stays balanced, and the mystery weight ends up all alone, easy to read. Try the move yourself below.",
+        "body": "A mystery block sits next to a known weight. Take the same off both pans to leave the block alone.",
         "interaction": {
           "type": "scale_demo",
           "config": {
@@ -101,14 +122,19 @@
           },
           "value": 2,
           "actionLabel": "Take 2 lb off both pans",
-          "resultCaption": "Watch the right pan: taking 2 off turned 9 into 7. The left lost its extra 2 as well, so the scale never tipped, and now the mystery block balances 7 all on its own."
+          "resultCaption": "Take 2 off each side: 9 becomes 7, so the block balances 7 alone.",
+          "predict": {
+            "prompt": "Predict: take 2 off each pan and the right pan reads...",
+            "options": ["6 lb", "7 lb", "8 lb"],
+            "answerIndex": 1
+          }
         },
         "continueLabel": "Let's practice"
       },
       {
         "id": "s3",
         "type": "scale_interactive",
-        "prompt": "A mystery block plus a 1-pound weight balances 7 pounds. Change the scale to uncover the block's weight, keep both pans balanced!",
+        "prompt": "A mystery block plus 1 pound balances 7 pounds. Uncover the block, keep both pans balanced!",
         "visual": {
           "type": "scale",
           "config": {
@@ -125,34 +151,34 @@
           "expectedUnknown": 6
         },
         "followUpMc": {
-          "prompt": "Now the mystery block stands alone. How much is it worth?",
+          "prompt": "The block stands alone. How much is it worth?",
           "options": ["4 lb", "5 lb", "6 lb", "8 lb"],
           "correctIndex": 2,
           "feedback": {
-            "correct": "Exactly! With the extra pound gone, the mystery block balances what's left.",
+            "correct": "Exactly! With the extra pound gone, the block balances what's left.",
             "incorrect": [
-              "Look at the right pan after both sides lost a pound, what does it read now?",
-              "The mystery block matches the weight across from it. Count the pounds on the right."
+              "After both sides lose a pound, what does the right pan read?",
+              "The block matches the weight across from it. Count the right pan."
             ]
           }
         },
-        "hint": "Whatever you take off the left tray, take the same off the right tray too.",
+        "hints": [
+          "A scale stays level only when both pans change the same way.",
+          "Lift the extra 1 pound off both pans so the block sits alone.",
+          "Once the block is alone, read what the right pan still holds."
+        ],
         "feedback": {
-          "correct": "The scale stays balanced, and the mystery block is uncovered!",
+          "correct": "Balanced all the way, and the block is uncovered!",
           "incorrect": [
-            "You changed only one side, so it tipped over. Both pans have to lose the same amount.",
-            "Take the same weight off each tray, then read what the mystery block balances."
+            "You changed only one side. Both pans must lose the same amount.",
+            "Take the same off each pan, then read what the block balances."
           ]
-        },
-        "explanation": {
-          "title": "Both pans stay equal",
-          "body": "A scale stays balanced only when both pans change by the same amount, and that is what lets you peel the extra weight away fairly."
         }
       },
       {
         "id": "s4",
         "type": "mc",
-        "prompt": "Two identical boxes plus a 2-pound weight balance with 10 pounds on the other side. How much does one box weigh?",
+        "prompt": "Two identical boxes plus 2 pounds balance 10 pounds. How much does one box weigh?",
         "visual": {
           "type": "scale",
           "config": {
@@ -165,17 +191,17 @@
         },
         "options": ["3 lb", "4 lb", "5 lb", "8 lb"],
         "correctIndex": 1,
-        "hint": "First take the extra 2 pounds off both sides. Then share what's left between the two boxes.",
+        "hints": [
+          "Clear the loose weight first, then deal with the matching boxes.",
+          "Take the extra 2 pounds off both sides to leave just the two boxes.",
+          "Then split whatever the boxes balance into two equal shares."
+        ],
         "feedback": {
-          "correct": "Yes! Clear the extra 2, then split what's left between two equal boxes, beautifully done.",
+          "correct": "Yes! Clear the 2, then split what's left between the two boxes.",
           "incorrect": [
-            "Take the 2-pound weight off both sides first. What's left for the two boxes?",
-            "Both boxes weigh the same. After removing 2, share the rest equally between them."
+            "Take the 2 off both sides first. What's left for the boxes?",
+            "The boxes match. After removing 2, share the rest equally."
           ]
-        },
-        "explanation": {
-          "title": "First clear the extra, then share",
-          "body": "Two moves combine here: clear the known weight from both sides to stay fair, then split what remains among the matching shapes."
         }
       }
     ],
@@ -183,7 +209,7 @@
       {
         "id": "m1",
         "type": "mc",
-        "prompt": "Three squares balance 15 pounds. One square weighs…",
+        "prompt": "Three squares balance 15 pounds. One square weighs...",
         "visual": {
           "type": "scale",
           "config": {
@@ -201,7 +227,7 @@
       {
         "id": "m2",
         "type": "mc",
-        "prompt": "Two triangles plus 3 pounds balance 11 pounds. One triangle weighs…",
+        "prompt": "Two triangles plus 3 pounds balance 11 pounds. One triangle weighs...",
         "visual": {
           "type": "scale",
           "config": {
@@ -217,12 +243,17 @@
         "feedback": {
           "correct": "Yes! Take away 3 from both sides, then share the rest between two triangles.",
           "incorrect": ["Take away 3 from both sides first, then split what's left by 2."]
+        },
+        "followUp": {
+          "prompt": "What if the extra weight were 5 pounds instead of 3, still balancing 11? Would one triangle be heavier or lighter?",
+          "answer": "Lighter",
+          "why": "Taking 5 off both sides leaves only 6 for the two triangles to share, so each triangle is lighter than before."
         }
       },
       {
         "id": "m3",
         "type": "mc",
-        "prompt": "A mystery block plus 5 pounds balances 13 pounds. The mystery block weighs…",
+        "prompt": "A mystery block plus 5 pounds balances 13 pounds. The mystery block weighs...",
         "visual": {
           "type": "scale",
           "config": {
@@ -238,6 +269,11 @@
         "feedback": {
           "correct": "Right, take 5 off both sides and the block stands alone.",
           "incorrect": ["Remove 5 from both sides. What's left on the mystery side?"]
+        },
+        "followUp": {
+          "prompt": "What if the block plus 5 balanced 15 instead of 13? Would the block be heavier or lighter?",
+          "answer": "Heavier",
+          "why": "A bigger total with the same 5 taken off both sides leaves more for the block, so it is heavier."
         }
       }
     ]

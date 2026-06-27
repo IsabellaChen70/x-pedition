@@ -1,8 +1,12 @@
+import { lazy, Suspense, useState } from 'react';
 import type { ConceptStep, Lesson, Step } from '../types/lesson';
 import type { LessonAnswerRecord } from '../lib/progress';
+import { isPracticeEnabled } from '../lib/ai/config';
 import { renderPrompt } from '../lib/renderPrompt';
 import ScaleVisual from './ScaleVisual';
 import { Button } from './ui';
+
+const PracticeSession = lazy(() => import('./PracticeSession'));
 
 type QuestionStep = Exclude<Step, ConceptStep>;
 
@@ -14,14 +18,33 @@ function isQuestionStep(step: Step): step is QuestionStep {
 type LessonReviewProps = {
   lesson: Lesson;
   answerHistory: Record<string, LessonAnswerRecord>;
+  userId: string;
+  courseId: string;
   onRestart: () => void;
 };
 
 export default function LessonReview({
   lesson,
   answerHistory,
+  userId,
+  courseId,
   onRestart,
 }: LessonReviewProps) {
+  const [practicing, setPracticing] = useState(false);
+
+  if (practicing) {
+    return (
+      <Suspense fallback={<p className="text-center text-muted">Loading practice…</p>}>
+        <PracticeSession
+          userId={userId}
+          courseId={courseId}
+          lessonId={lesson.id}
+          onExit={() => setPracticing(false)}
+        />
+      </Suspense>
+    );
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-brand-200 bg-brand-50 px-5 py-3">
@@ -29,9 +52,16 @@ export default function LessonReview({
           <EyeIcon className="h-5 w-5" />
           Review mode
         </span>
-        <Button variant="outline" size="sm" onClick={onRestart}>
-          Restart lesson
-        </Button>
+        <div className="flex items-center gap-2">
+          {isPracticeEnabled() && (
+            <Button size="sm" onClick={() => setPracticing(true)}>
+              Keep practicing
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={onRestart}>
+            Restart lesson
+          </Button>
+        </div>
       </div>
 
       <ReviewSection
@@ -117,22 +147,21 @@ function ReviewCard({
               <p className="mt-1 text-sm text-slate-800">{answer.attempts.join(' -> ')}</p>
             </div>
           )}
+          {answer.reflection && (
+            <div className="rounded-xl bg-brand-50 px-4 py-3 sm:col-span-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-brand-700">
+                Your explanation
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-800">
+                {answer.reflection}
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-muted">
           No saved answer for this question yet.
         </p>
-      )}
-      {'explanation' in step && step.explanation && (
-        <div className="mt-4 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-brand-700">
-            Why this works
-          </p>
-          <h4 className="mt-1 font-semibold text-brand-950">{step.explanation.title}</h4>
-          <p className="mt-1 text-sm leading-relaxed text-brand-900">
-            {renderPrompt(step.explanation.body)}
-          </p>
-        </div>
       )}
     </article>
   );

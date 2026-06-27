@@ -20,6 +20,10 @@ import {
   validateTileCombine,
 } from '../lib/validation';
 import type { TileGrouping } from '../lib/validation';
+import { deterministicHints } from '../lib/ai/hint';
+import { detectMisconception, getMisconception, summarizeMisconceptions } from '../lib/ai/misconception';
+import type { MisconceptionId } from '../lib/ai/types';
+import type { StepHint } from './StepActions';
 import type {
   EqualShareStep,
   Lesson,
@@ -36,6 +40,7 @@ import LessonProgress from './LessonProgress';
 import LessonReview from './LessonReview';
 import McStepView from './McStepView';
 import ScaleInteractiveQuestion from './ScaleInteractiveQuestion';
+import SelfExplain from './SelfExplain';
 import TileCombineQuestion from './TileCombineQuestion';
 
 type LessonPlayerProps = {
@@ -64,6 +69,11 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
   const [scaleConfig, setScaleConfig] = useState<ScaleVisualConfig | null>(null);
   const [removalApplied, setRemovalApplied] = useState(false);
   const [removedFromBoth, setRemovedFromBoth] = useState(false);
+  // Misconception detected on the current step's last wrong answer (scaffolded only).
+  const [misconceptionId, setMisconceptionId] = useState<MisconceptionId | null>(null);
+  // Every misconception detected across this lesson run, for the "what to revisit"
+  // summary on the completion screen. Session-only (not persisted).
+  const [misconceptionLog, setMisconceptionLog] = useState<MisconceptionId[]>([]);
 
   const allMasteryIds = useMemo(
     () => lesson.phases.mastery.map((s) => s.id),
@@ -182,6 +192,7 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
     setScaleConfig(null);
     setRemovalApplied(false);
     setRemovedFromBoth(false);
+    setMisconceptionId(null);
   }, []);
 
   const evaluateMastery = useCallback(() => {
@@ -252,12 +263,56 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
     [answerHistory, phase],
   );
 
+  // Merge the learner's typed self-explanation into the step's answer record so it
+  // is persisted and shown later in review. Latest submission wins.
+  const recordReflectionText = useCallback(
+    (stepId: string, reflection: string) => {
+      const existing = answerHistory[stepId];
+      if (!existing) {
+        return;
+      }
+      const nextHistory = {
+        ...answerHistory,
+        [stepId]: { ...existing, reflection },
+      };
+      setAnswerHistory(nextHistory);
+      void persistProgress(buildProgressSnapshot({ answerHistory: nextHistory }));
+    },
+    [answerHistory, buildProgressSnapshot, persistProgress],
+  );
+
+  // A correct banner that spells out the "why" would hand the learner the very
+  // reasoning the self-explanation prompt is about to ask for. On reflect
+  // questions, keep it a neutral confirmation so they think it through themselves.
+  const feedbackMessage = (
+    s: Step,
+    result: { ok: boolean; message: string },
+    misconception: MisconceptionId | null,
+  ): string =>
+    result.ok && shouldReflect(s, phase, stepIndex)
+      ? 'Correct!'
+      : diagnosisMessage(result, misconception);
+
+  // Record a step's detected misconception: it drives this step's hints AND feeds
+  // the end-of-lesson "what to revisit" summary (each occurrence is logged).
+  const noteMisconception = (misconception: MisconceptionId | null) => {
+    setMisconceptionId(misconception);
+    if (misconception) {
+      setMisconceptionLog((prev) => [...prev, misconception]);
+    }
+  };
+
   const handleMcSubmit = (selectedIndex: number) => {
     if (step?.type !== 'mc') {
       return;
     }
     const result = validateMcStep(step, selectedIndex);
-    setFeedback({ ok: result.ok, message: result.message });
+    const misconception =
+      result.ok || phase !== 'scaffolded'
+        ? null
+        : detectMisconception(step, { type: 'mc', selectedIndex });
+    noteMisconception(misconception);
+    setFeedback({ ok: result.ok, message: feedbackMessage(step, result, misconception) });
     setSubmitted(true);
     const nextAnswerHistory = recordAnswer({
       stepId: step.id,
@@ -278,7 +333,17 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
       removedFromBoth,
       mcIndex,
     });
-    setFeedback({ ok: result.ok, message: result.message });
+    const misconception =
+      result.ok || phase !== 'scaffolded'
+        ? null
+        : detectMisconception(step, {
+            type: 'scale_interactive',
+            removalApplied,
+            removedFromBoth,
+            mcIndex,
+          });
+    noteMisconception(misconception);
+    setFeedback({ ok: result.ok, message: feedbackMessage(step, result, misconception) });
     setSubmitted(true);
     const nextAnswerHistory = recordAnswer({
       stepId: step.id,
@@ -295,7 +360,12 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
       return;
     }
     const result = validateTileCombine(step, grouped);
-    setFeedback({ ok: result.ok, message: result.message });
+    const misconception =
+      result.ok || phase !== 'scaffolded'
+        ? null
+        : detectMisconception(step, { type: 'tile_combine', grouping: grouped });
+    noteMisconception(misconception);
+    setFeedback({ ok: result.ok, message: feedbackMessage(step, result, misconception) });
     setSubmitted(true);
     const nextAnswerHistory = recordAnswer({
       stepId: step.id,
@@ -312,7 +382,12 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
       return;
     }
     const result = validateEqualShare(step, groupCounts);
-    setFeedback({ ok: result.ok, message: result.message });
+    const misconception =
+      result.ok || phase !== 'scaffolded'
+        ? null
+        : detectMisconception(step, { type: 'equal_share', groupCounts });
+    noteMisconception(misconception);
+    setFeedback({ ok: result.ok, message: feedbackMessage(step, result, misconception) });
     setSubmitted(true);
     const nextAnswerHistory = recordAnswer({
       stepId: step.id,
@@ -329,7 +404,12 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
       return;
     }
     const result = validateExpressionBuilder(step, tokens);
-    setFeedback({ ok: result.ok, message: result.message });
+    const misconception =
+      result.ok || phase !== 'scaffolded'
+        ? null
+        : detectMisconception(step, { type: 'expression_builder', tokens });
+    noteMisconception(misconception);
+    setFeedback({ ok: result.ok, message: feedbackMessage(step, result, misconception) });
     setSubmitted(true);
     const nextAnswerHistory = recordAnswer({
       stepId: step.id,
@@ -394,6 +474,8 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
     setScaleConfig(null);
     setRemovalApplied(false);
     setRemovedFromBoth(false);
+    setMisconceptionId(null);
+    setMisconceptionLog([]);
     void persistProgress(snapshot);
   };
 
@@ -412,6 +494,8 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
         <LessonReview
           lesson={lesson}
           answerHistory={answerHistory}
+          userId={userId}
+          courseId={courseId}
           onRestart={handleRestartLesson}
         />
       );
@@ -430,6 +514,10 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
           masteryTotal={MASTERY_TOTAL}
           passed={lessonPassed}
           nextLesson={nextLesson ?? undefined}
+          revisit={summarizeMisconceptions(misconceptionLog)}
+          userId={userId}
+          courseId={courseId}
+          lessonId={lesson.id}
           onReview={() => setReviewMode(true)}
           onRestart={handleRestartLesson}
         />
@@ -458,7 +546,21 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
     step.type === 'scale_interactive' ? (scaleConfig ?? step.visual.config) : null;
 
   const isScaffolded = phase === 'scaffolded';
-  const stepHint = 'hint' in step ? step.hint : undefined;
+  // Escalating Socratic hints, scaffolded only (mastery stays hint-free by contract).
+  // Hints become misconception-specific once one is detected on a wrong answer.
+  const stepHint = buildStepHint(step, isScaffolded, misconceptionId);
+
+  // After a correct answer on a reflect/mastery question, the "Convince Me"
+  // self-explanation appears inline (in place of Continue) before advancing.
+  const reflectSlot = shouldReflect(step, phase, stepIndex) ? (
+    <SelfExplain
+      step={step}
+      userId={userId}
+      courseId={courseId}
+      onDone={goToNextStep}
+      onReflect={(textValue) => recordReflectionText(step.id, textValue)}
+    />
+  ) : undefined;
 
   return (
     <div>
@@ -499,7 +601,8 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
           onTryAgain={handleTryAgain}
           onBack={handleBack}
           canGoBack={canGoBack}
-          hint={isScaffolded ? stepHint : undefined}
+          hint={stepHint}
+          reflectSlot={reflectSlot}
         />
       )}
 
@@ -519,7 +622,7 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
           onTryAgain={handleScaleTryAgain}
           onBack={handleBack}
           canGoBack={canGoBack}
-          hint={isScaffolded ? stepHint : undefined}
+          hint={stepHint}
         />
       )}
 
@@ -535,7 +638,7 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
           onTryAgain={handleTryAgain}
           onBack={handleBack}
           canGoBack={canGoBack}
-          hint={isScaffolded ? stepHint : undefined}
+          hint={stepHint}
         />
       )}
 
@@ -551,7 +654,7 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
           onTryAgain={handleTryAgain}
           onBack={handleBack}
           canGoBack={canGoBack}
-          hint={isScaffolded ? stepHint : undefined}
+          hint={stepHint}
         />
       )}
 
@@ -567,13 +670,59 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
           onTryAgain={handleTryAgain}
           onBack={handleBack}
           canGoBack={canGoBack}
-          hint={isScaffolded ? stepHint : undefined}
+          hint={stepHint}
         />
       )}
         </Card>
       )}
     </div>
   );
+}
+
+/**
+ * Build the escalating hint for a step: deterministic, answer-safe levels that
+ * reveal instantly. They become misconception-specific once one is detected. Only
+ * for scaffolded question steps, mastery and concept steps get no hints.
+ */
+function buildStepHint(
+  step: Step,
+  isScaffolded: boolean,
+  misconceptionId: MisconceptionId | null,
+): StepHint | undefined {
+  if (!isScaffolded || step.type === 'concept') {
+    return undefined;
+  }
+  const misconception = misconceptionId ? getMisconception(misconceptionId) ?? null : null;
+  const levels = deterministicHints(step, misconception);
+  return levels.length > 0 ? { levels } : undefined;
+}
+
+/**
+ * Whether to invite a self-explanation after a correct answer. Kept bounded and
+ * not repetitive: only the 2nd and 3rd mastery questions (the "show what you
+ * know" moment), plus any scaffolded step an author explicitly flags with
+ * `reflect`. Never on concept (teaching) pages.
+ */
+function shouldReflect(step: Step, phase: Phase, indexInPhase: number): boolean {
+  if (step.type === 'concept') {
+    return false;
+  }
+  if (phase === 'mastery') {
+    return indexInPhase === 1 || indexInPhase === 2;
+  }
+  return step.reflect === true;
+}
+
+/** The feedback a learner sees on submit: a specific misconception note when we
+ * detected one, otherwise the validator's authored message. */
+function diagnosisMessage(
+  result: { ok: boolean; message: string },
+  misconceptionId: MisconceptionId | null,
+): string {
+  if (result.ok || !misconceptionId) {
+    return result.message;
+  }
+  return getMisconception(misconceptionId)?.explanation ?? result.message;
 }
 
 function getScaleAnswerLabel(step: ScaleInteractiveStep, mcIndex: number | null): string {

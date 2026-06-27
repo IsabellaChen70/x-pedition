@@ -39,6 +39,98 @@ function validateFeedback(feedback, stepId, required = true) {
   }
 }
 
+function validateFollowUp(followUp, where) {
+  if (typeof followUp !== 'object' || followUp === null) {
+    err(`${where}: followUp must be an object`);
+    return;
+  }
+  for (const key of ['prompt', 'answer', 'why']) {
+    if (typeof followUp[key] !== 'string' || !followUp[key].trim()) {
+      err(`${where}: followUp.${key} must be a non-empty string`);
+    }
+  }
+}
+
+function validateConceptGate(gate, where) {
+  if (!gate || gate.type !== 'fill') {
+    err(`${where}: gate.type must be "fill"`);
+    return;
+  }
+  if (typeof gate.template !== 'string' || !gate.template.trim()) {
+    err(`${where}: fill gate needs a non-empty "template"`);
+    return;
+  }
+  if (
+    !Array.isArray(gate.answers) ||
+    gate.answers.length === 0 ||
+    !gate.answers.every((answer) => typeof answer === 'string' && answer.trim())
+  ) {
+    err(`${where}: fill gate "answers" must be a non-empty array of non-empty strings`);
+    return;
+  }
+  const blankCount = gate.template.split('___').length - 1;
+  if (blankCount !== gate.answers.length) {
+    err(
+      `${where}: fill gate template has ${blankCount} blank(s) marked by "___" but ${gate.answers.length} answer(s)`,
+    );
+  }
+  if (
+    gate.extras !== undefined &&
+    (!Array.isArray(gate.extras) || !gate.extras.every((extra) => typeof extra === 'string' && extra.trim()))
+  ) {
+    err(`${where}: fill gate "extras" must be an array of non-empty strings`);
+  }
+  if (gate.hint !== undefined && (typeof gate.hint !== 'string' || !gate.hint.trim())) {
+    err(`${where}: fill gate "hint" must be a non-empty string`);
+  }
+}
+
+function validateConceptPredict(predict, id) {
+  if (typeof predict.prompt !== 'string' || !predict.prompt.trim()) {
+    err(`${id}: scale_demo predict needs a non-empty "prompt"`);
+  }
+  if (!Array.isArray(predict.options) || predict.options.length < 2) {
+    err(`${id}: scale_demo predict needs at least 2 options`);
+  }
+  if (
+    typeof predict.answerIndex !== 'number' ||
+    predict.answerIndex < 0 ||
+    predict.answerIndex >= (predict.options?.length ?? 0)
+  ) {
+    err(`${id}: scale_demo predict has an invalid answerIndex`);
+  }
+}
+
+function validateConceptStep(step, id) {
+  if (!step.title || typeof step.title !== 'string') err(`${id}: concept step needs a title`);
+  if (!step.body || typeof step.body !== 'string') err(`${id}: concept step needs a body`);
+
+  const interaction = step.interaction;
+  if (!interaction) return;
+
+  if (!['reveal', 'scale_demo'].includes(interaction.type)) {
+    err(`${id}: concept interaction.type must be "reveal" or "scale_demo"`);
+    return;
+  }
+
+  if (interaction.type === 'reveal') {
+    if (!Array.isArray(interaction.steps) || interaction.steps.length === 0) {
+      err(`${id}: reveal interaction needs a non-empty steps array`);
+      return;
+    }
+    interaction.steps.forEach((revealStep, i) => {
+      if (!revealStep || typeof revealStep.text !== 'string' || !revealStep.text.trim()) {
+        err(`${id}: reveal step ${i} needs non-empty text`);
+      }
+      if (revealStep?.gate) validateConceptGate(revealStep.gate, `${id} reveal step ${i}`);
+    });
+    return;
+  }
+
+  // scale_demo
+  if (interaction.predict) validateConceptPredict(interaction.predict, id);
+}
+
 function validateStep(step, phase, lessonId) {
   const id = `${lessonId}.${step.id}`;
 
@@ -46,23 +138,31 @@ function validateStep(step, phase, lessonId) {
   if (!STEP_TYPES.has(step.type)) err(`${id}: invalid type "${step.type}"`);
 
   if (step.type === 'concept') {
-    if (!step.title || typeof step.title !== 'string') err(`${id}: concept step needs a title`);
-    if (!step.body || typeof step.body !== 'string') err(`${id}: concept step needs a body`);
-    if (step.interaction && !['reveal', 'scale_demo'].includes(step.interaction.type)) {
-      err(`${id}: concept interaction.type must be "reveal" or "scale_demo"`);
-    }
+    validateConceptStep(step, id);
     return;
   }
 
   if (!step.prompt || typeof step.prompt !== 'string') err(`${id}: missing prompt`);
   validateFeedback(step.feedback, id);
+  if (step.followUp !== undefined) validateFollowUp(step.followUp, id);
 
+  const hasHint = typeof step.hint === 'string' && step.hint.trim();
+  const hasHints = Array.isArray(step.hints) && step.hints.length > 0;
   if (phase === 'scaffolded') {
-    if (!step.hint || typeof step.hint !== 'string') {
-      err(`${id}: scaffolded step missing hint`);
+    if (!hasHint && !hasHints) {
+      err(`${id}: scaffolded step needs a "hint" or a non-empty "hints" array`);
     }
-  } else if (phase === 'mastery' && step.hint) {
-    err(`${id}: mastery step must not have hint`);
+  } else if (phase === 'mastery' && (step.hint || step.hints)) {
+    err(`${id}: mastery step must not have hint(s)`);
+  }
+  if (step.hints !== undefined) {
+    if (
+      !Array.isArray(step.hints) ||
+      step.hints.length === 0 ||
+      !step.hints.every((hint) => typeof hint === 'string' && hint.trim())
+    ) {
+      err(`${id}: "hints" must be a non-empty array of non-empty strings`);
+    }
   }
 
   if (step.type === 'mc') {
@@ -160,6 +260,13 @@ function validateLesson(lesson, filename) {
   }
   if (mastery.length !== 3) {
     err(`${lessonId}: mastery should have exactly 3 steps (has ${mastery.length})`);
+  }
+  // The 2nd and 3rd mastery questions are the self-explanation (reflect) moments
+  // (see shouldReflect in LessonPlayer), so each must carry an authored followUp twist.
+  for (const i of [1, 2]) {
+    if (mastery[i] && !mastery[i].followUp) {
+      err(`${lessonId}: mastery step index ${i} (reflect) is missing a followUp twist`);
+    }
   }
 
   const hasInteractive = scaffolded.some((s) => (

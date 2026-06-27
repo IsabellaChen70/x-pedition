@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { EqualShareStep } from '../types/lesson';
 import { renderPrompt } from '../lib/renderPrompt';
 import FeedbackBanner from './FeedbackBanner';
-import StepActions from './StepActions';
+import StepActions, { type StepHint } from './StepActions';
 import { Button } from './ui';
 
 type EqualShareQuestionProps = {
@@ -10,7 +10,7 @@ type EqualShareQuestionProps = {
   submitted: boolean;
   feedback: { ok: boolean; message: string } | null;
   allowRetry: boolean;
-  hint?: string;
+  hint?: StepHint;
   onSubmit: (groupCounts: number[]) => void;
   onContinue: () => void;
   onTryAgain: () => void;
@@ -84,8 +84,9 @@ export default function EqualShareQuestion({
     setDraggingChipId(null);
   };
 
+  // Keep the learner's current placements on a retry so they can adjust what they
+  // have instead of starting over. The explicit Reset button still clears all.
   const handleTryAgain = () => {
-    setAssignments(Array.from({ length: totalItems }, () => null));
     setSelectedChipId(null);
     setDraggingChipId(null);
     submittingRef.current = false;

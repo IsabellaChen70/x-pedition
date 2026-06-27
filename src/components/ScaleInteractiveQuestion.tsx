@@ -9,7 +9,7 @@ import { renderPrompt } from '../lib/renderPrompt';
 import BalanceScale from './BalanceScale';
 import FeedbackBanner from './FeedbackBanner';
 import McQuestion from './McQuestion';
-import StepActions from './StepActions';
+import StepActions, { type StepHint } from './StepActions';
 import { Button } from './ui';
 
 type ScaleInteractiveQuestionProps = {
@@ -26,7 +26,7 @@ type ScaleInteractiveQuestionProps = {
   removalApplied: boolean;
   removedFromBoth: boolean;
   allowRetry: boolean;
-  hint?: string;
+  hint?: StepHint;
 };
 
 export default function ScaleInteractiveQuestion({

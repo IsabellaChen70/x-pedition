@@ -1,8 +1,12 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { isPracticeEnabled } from '../lib/ai/config';
+import type { MisconceptionSummary } from '../lib/ai/misconception';
 import { fireConfetti } from '../lib/confetti';
 import { Button, buttonClasses } from './ui';
 import ProgressRing from './ProgressRing';
+
+const PracticeSession = lazy(() => import('./PracticeSession'));
 
 type LessonCompleteProps = {
   lessonTitle: string;
@@ -10,6 +14,11 @@ type LessonCompleteProps = {
   masteryTotal: number;
   passed: boolean;
   nextLesson?: { id: string; title: string };
+  /** Ideas the learner tripped on this run, for a "what to revisit" nudge. */
+  revisit?: MisconceptionSummary[];
+  userId: string;
+  courseId: string;
+  lessonId: string;
   onReview: () => void;
   onRestart: () => void;
 };
@@ -20,14 +29,33 @@ export default function LessonComplete({
   masteryTotal,
   passed,
   nextLesson,
+  revisit = [],
+  userId,
+  courseId,
+  lessonId,
   onReview,
   onRestart,
 }: LessonCompleteProps) {
+  const [practicing, setPracticing] = useState(false);
+
   useEffect(() => {
     if (passed) {
       fireConfetti();
     }
   }, [passed]);
+
+  if (practicing) {
+    return (
+      <Suspense fallback={<p className="text-center text-muted">Loading practice…</p>}>
+        <PracticeSession
+          userId={userId}
+          courseId={courseId}
+          lessonId={lessonId}
+          onExit={() => setPracticing(false)}
+        />
+      </Suspense>
+    );
+  }
 
   const cardClass = passed
     ? 'rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center'
@@ -79,13 +107,38 @@ export default function LessonComplete({
           Up next: <span className="font-semibold">{nextLesson.title}</span>
         </p>
       )}
-      <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-        <Button onClick={onReview}>Review questions</Button>
-        {!passed && (
-          <Button variant="outline" onClick={onRestart}>
-            Restart lesson
+
+      {revisit.length > 0 && (
+        <div className="mx-auto mt-5 max-w-sm rounded-xl border border-parchment-300 bg-parchment-50 px-4 py-3 text-left">
+          <p className="text-sm font-semibold text-ink">What to revisit</p>
+          <ul className="mt-2 space-y-2">
+            {revisit.map((item) => (
+              <li key={item.id} className="text-sm leading-relaxed text-ink/80">
+                <span className="font-semibold text-ink">{item.name}</span>
+                {item.count > 1 && (
+                  <span className="text-muted"> · came up {item.count} times</span>
+                )}
+                <span className="block text-ink/70">{item.explanation}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-6 flex flex-col items-center gap-3">
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          {isPracticeEnabled() && (
+            <Button onClick={() => setPracticing(true)}>Keep practicing</Button>
+          )}
+          <Button variant="outline" onClick={onReview}>
+            Review questions
           </Button>
-        )}
+          {!passed && (
+            <Button variant="outline" onClick={onRestart}>
+              Restart lesson
+            </Button>
+          )}
+        </div>
         <Link to="/" className={buttonClasses({ variant: 'secondary' })}>
           Back to home
         </Link>

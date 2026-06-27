@@ -4,7 +4,7 @@ import type { TileCombineStep } from '../types/lesson';
 import type { TileGrouping } from '../lib/validation';
 import { renderPrompt } from '../lib/renderPrompt';
 import FeedbackBanner from './FeedbackBanner';
-import StepActions from './StepActions';
+import StepActions, { type StepHint } from './StepActions';
 import { Button } from './ui';
 
 type Zone = 'x' | 'const';
@@ -15,7 +15,7 @@ type TileCombineQuestionProps = {
   submitted: boolean;
   feedback: { ok: boolean; message: string } | null;
   allowRetry: boolean;
-  hint?: string;
+  hint?: StepHint;
   onSubmit: (grouped: TileGrouping) => void;
   onContinue: () => void;
   onTryAgain: () => void;
@@ -120,8 +120,9 @@ export default function TileCombineQuestion({
     setDraggingTileId(null);
   };
 
+  // Keep the learner's tile placement on a retry so they can adjust what they have
+  // instead of starting over. The explicit Reset button still clears all.
   const handleTryAgain = () => {
-    setZoneByTile({});
     setSelectedTileId(null);
     setDraggingTileId(null);
     submittingRef.current = false;
