@@ -246,6 +246,10 @@ function PracticeRunner({
   const reviewsRecorded = useRef(false);
   // The next-review interval per concept, shown as a cue on the completion screen.
   const [reviewCues, setReviewCues] = useState<{ concept: ConceptId; days: number }[]>([]);
+  // The skill(s) this session is tuned around (the due skills in review, or the
+  // learner's weakest skills in practice), surfaced as a short personalized
+  // "why" line in the header so the adaptivity is felt, not just applied.
+  const [focus, setFocus] = useState<ConceptId[]>([]);
   // Free practice records its reviews on exit, which unmounts the session; this
   // lets the async cue-state update bail out instead of touching a dead component.
   const mounted = useRef(true);
@@ -323,13 +327,23 @@ function PracticeRunner({
         weakness.current = loaded.weakness;
         nextDifficulty.current = placeDifficulty(loaded);
         setPeakLevel(nextDifficulty.current);
+        // The session's focus: the due skills in review, or the skills the learner
+        // has slipped on most in practice, so the header can say why this session
+        // is tuned to them. Weakness > 0.15 means below ~85% on that skill.
+        const ranked = isReview
+          ? concepts.slice(0, 3)
+          : [...concepts]
+              .filter((concept) => (loaded.weakness[concept] ?? 0) > 0.15)
+              .sort((a, b) => (loaded.weakness[b] ?? 0) - (loaded.weakness[a] ?? 0))
+              .slice(0, 2);
+        setFocus(ranked);
       }
       showInstantProblem();
     })();
     return () => {
       active = false;
     };
-  }, [userId, courseId, lessonId, concepts, setup, showInstantProblem]);
+  }, [userId, courseId, lessonId, concepts, setup, showInstantProblem, isReview]);
 
   // Restart the response timer each time a fresh problem is shown.
   useEffect(() => {
@@ -575,6 +589,13 @@ function PracticeRunner({
 
   const title = isReview ? 'Daily Review' : goal !== null ? 'Daily Treasure Dig' : 'Free practice';
   const progress = goal !== null ? `${Math.min(solved, goal)} of ${goal}` : `Solved: ${solved}`;
+  const focusNames = focus.map((concept) => CONCEPT_LABELS[concept]).join(', ');
+  const focusNote =
+    focus.length === 0
+      ? null
+      : isReview
+        ? `Due for review: ${focusNames}.`
+        : `Leaning toward ${focusNames}, where you've slipped lately.`;
 
   return (
     <Card padding="lg">
@@ -583,8 +604,9 @@ function PracticeRunner({
           <p className="font-display text-xl font-bold text-ink">{title}</p>
           <p className="mt-0.5 text-sm text-muted">
             {progress}
-            {scopeTitle ? ` · ${isReview ? scopeTitle : `up to ${scopeTitle}`}` : ''}
+            {!isReview && scopeTitle ? ` · up to ${scopeTitle}` : ''}
           </p>
+          {focusNote && <p className="mt-1 text-sm font-medium text-brand-800">{focusNote}</p>}
         </div>
         <Button variant="ghost" size="sm" onClick={handleDone}>
           Done

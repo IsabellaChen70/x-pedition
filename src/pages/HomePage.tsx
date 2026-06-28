@@ -10,7 +10,7 @@ import { Alert, Button } from '../components/ui';
 import mapBg from '../assets/map-bg.jpg';
 import { isPracticeEnabled } from '../lib/ai/config';
 import { conceptForLesson, lessonForConcept } from '../lib/ai/concepts';
-import { getDueConcepts, retentionAfterADay, skillState } from '../lib/ai/srs';
+import { getDueConcepts, skillState } from '../lib/ai/srs';
 import type { ConceptId } from '../lib/ai/types';
 import { computeBadges, newlyEarnedBadgeIds } from '../lib/badges';
 import type { Badge } from '../lib/badges';
@@ -18,6 +18,7 @@ import { getCourse, getLesson, listLessons } from '../lib/content';
 import {
   acknowledgeBadges,
   acknowledgeStreakCelebration,
+  backfillCompletedSkills,
   getCourseProgress,
   getDevDayOffset,
   recordFinalChallengePassed,
@@ -71,7 +72,6 @@ export default function HomePage() {
   const today = todayKey();
   const skills = progress?.skills ?? {};
   const dueConcepts = getDueConcepts(skills, today);
-  const retention = retentionAfterADay(skills, today);
 
   // XP and level reflect real results: each cleared lesson and each correct
   // mastery answer is worth points, so the bar tracks actual progress.
@@ -181,6 +181,16 @@ export default function HomePage() {
             setCelebrateStreak(true);
             void acknowledgeStreakCelebration(user.uid, course.id, nextProgress.streakCount);
           }
+
+          // Backfill the spaced system from lessons completed before they were
+          // tracked, so every finished lesson gets a schedule and shows on the map.
+          void backfillCompletedSkills(user.uid, course.id, nextProgress).then((seeds) => {
+            if (active && Object.keys(seeds).length > 0) {
+              setProgress((prev) =>
+                prev ? { ...prev, skills: { ...(prev.skills ?? {}), ...seeds } } : prev,
+              );
+            }
+          });
         }
       } catch {
         if (active) {
@@ -395,13 +405,6 @@ export default function HomePage() {
                   )}
                 </div>
               </div>
-            )}
-            {isPracticeEnabled() && retention.pct !== null && (
-              <p className="text-center text-sm text-muted">
-                Spaced practice is sticking:{' '}
-                <span className="font-semibold text-ink">{retention.pct}%</span> of reviewed skills
-                recalled after a day.
-              </p>
             )}
           </div>
         )}

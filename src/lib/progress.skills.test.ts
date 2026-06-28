@@ -35,7 +35,7 @@ vi.mock('firebase/firestore', () => ({
   increment: (n: number) => ({ __increment: n }),
 }));
 
-import { getReviewSetup, recordSkillReview, todayKey } from './progress';
+import { computeSkillSeeds, getReviewSetup, recordSkillReview, todayKey } from './progress';
 import { addDays, reviewSkill } from './ai/srs';
 import type { SkillMemory } from './ai/srs';
 
@@ -151,5 +151,34 @@ describe('getReviewSetup', () => {
     // Raw skills are passed through untouched for the Skill Map / cues.
     expect(setup.skills.solve).toEqual(overdueLess);
     expect(setup.skills.introX).toEqual(notDue);
+  });
+});
+
+describe('computeSkillSeeds (backfill completed lessons into the spaced system)', () => {
+  it('seeds completed lessons with no memory as a passed first review, due today', () => {
+    const today = '2026-02-10';
+    const seeds = computeSkillSeeds(
+      { completedLessonIds: ['lesson-01', 'lesson-02'], skills: {} },
+      today,
+    );
+    expect(new Set(Object.keys(seeds))).toEqual(new Set(['balance', 'introX']));
+    expect(seeds.balance!.box).toBe(2);
+    expect(seeds.balance!.reviews).toBe(1);
+    expect(seeds.balance!.dueDate).toBe(today); // dated so it comes due right now
+  });
+
+  it('skips a completed lesson that already has skill memory', () => {
+    const existing: SkillMemory = {
+      strength: 0.9, box: 5, dueDate: '2026-12-01', lastSeen: '2026-01-01', reviews: 6, lapses: 0,
+    };
+    const seeds = computeSkillSeeds(
+      { completedLessonIds: ['lesson-01', 'lesson-02'], skills: { balance: existing } },
+      '2026-02-10',
+    );
+    expect(Object.keys(seeds)).toEqual(['introX']);
+  });
+
+  it('returns empty when nothing is completed', () => {
+    expect(computeSkillSeeds({ completedLessonIds: [], skills: {} }, '2026-02-10')).toEqual({});
   });
 });

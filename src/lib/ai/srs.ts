@@ -191,26 +191,3 @@ export function weaknessFromSkills(
   }
   return out;
 }
-
-// A skill counts as "still strong" once its durable strength is at least half full.
-const STRONG_THRESHOLD = 0.5;
-
-/**
- * "Recalled after a day" retention: of the skills last reviewed on a PRIOR day,
- * the share still strong (strength >= half). The honest, deterministic proxy for
- * "did spacing stick", used to show the effect of the system. Pure; `pct` is null
- * until at least one skill has been carried across a day.
- */
-export function retentionAfterADay(
-  skills: Partial<Record<ConceptId, SkillMemory>>,
-  today: string,
-): { recalled: number; total: number; pct: number | null } {
-  let total = 0;
-  let recalled = 0;
-  for (const memory of Object.values(skills)) {
-    if (!memory || memory.reviews <= 0 || memory.lastSeen >= today) continue;
-    total += 1;
-    if (memory.strength >= STRONG_THRESHOLD) recalled += 1;
-  }
-  return { recalled, total, pct: total > 0 ? Math.round((recalled / total) * 100) : null };
-}

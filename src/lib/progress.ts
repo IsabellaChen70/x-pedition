@@ -9,8 +9,8 @@ import {
 } from 'firebase/firestore';
 import { db } from './firestore';
 import { buildWeaknessMap } from './ai/adaptive';
-import { lessonForConcept } from './ai/concepts';
-import { getDueConcepts, reviewSkill, weaknessFromSkills } from './ai/srs';
+import { conceptForLesson, lessonForConcept } from './ai/concepts';
+import { addDays, getDueConcepts, intervalForBox, reviewSkill, weaknessFromSkills } from './ai/srs';
 import type { SkillMemory } from './ai/srs';
 import type { ConceptId } from './ai/types';
 
@@ -530,6 +530,51 @@ export async function recordSkillReview(
     },
     { merge: true },
   );
+}
+
+/**
+ * Seeds for lessons completed before they joined the spaced system: each
+ * completed lesson whose concept has no memory yet gets a passed first review,
+ * dated so it comes due today (a "review what you already learned" nudge). Pure;
+ * returns only the concepts that need seeding, empty when nothing is missing.
+ */
+export function computeSkillSeeds(
+  progress: Pick<CourseProgress, 'completedLessonIds' | 'skills'>,
+  today: string,
+): Partial<Record<ConceptId, SkillMemory>> {
+  const skills = progress.skills ?? {};
+  // Date the seeded review so its next due date lands on today (the box-2 interval).
+  const seededAt = addDays(today, -intervalForBox(2));
+  const seeds: Partial<Record<ConceptId, SkillMemory>> = {};
+  for (const lessonId of progress.completedLessonIds) {
+    const concept = conceptForLesson(lessonId);
+    if (concept && !skills[concept]) {
+      seeds[concept] = reviewSkill(undefined, true, seededAt);
+    }
+  }
+  return seeds;
+}
+
+/**
+ * Backfill the spaced system from completed lessons so a learner's full history
+ * flows through spacing, not only lessons finished after the SRS shipped.
+ * Idempotent: only seeds completed lessons whose concept has no memory yet, and
+ * merge-writes just those. Returns the seeds so a caller can reflect them locally.
+ */
+export async function backfillCompletedSkills(
+  userId: string,
+  courseId: string,
+  progress: Pick<CourseProgress, 'completedLessonIds' | 'skills'>,
+): Promise<Partial<Record<ConceptId, SkillMemory>>> {
+  const seeds = computeSkillSeeds(progress, todayKey());
+  if (Object.keys(seeds).length > 0) {
+    await setDoc(
+      progressRef(userId, courseId),
+      { skills: seeds, updatedAt: serverTimestamp() },
+      { merge: true },
+    );
+  }
+  return seeds;
 }
 
 /**
