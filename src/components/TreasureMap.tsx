@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import mapBg from '../assets/map-bg.jpg';
+import Avatar from './Avatar';
 import Chest from './Chest';
+import { resolveMapTheme } from '../lib/cosmetics';
+import type { AvatarId, MapThemeTokens } from '../lib/cosmetics';
 
 type MapStopStatus = 'completed' | 'current' | 'unlocked' | 'locked';
 
@@ -52,6 +55,10 @@ type TreasureMapProps = {
   /** Paint the parchment-map image + wash behind the trail. Off when a parent
    *  already paints one continuous map backdrop behind the whole screen. */
   backdrop?: boolean;
+  /** Palette for the trail + fog, from the equipped map theme. Defaults to classic. */
+  theme?: MapThemeTokens;
+  /** The equipped companion, shown at the current stop. Null keeps the flag. */
+  avatar?: AvatarId | null;
 };
 
 // A single trail that weaves gently down the center, one stop per row, with each
@@ -71,7 +78,13 @@ type Item =
 /** One continuous, scrollable trail that snakes top-to-bottom through every
  *  lesson, dropping a treasure at the end of each section. Section names ride
  *  down the left edge as ribbon banners. */
-export default function TreasureMap({ sections, backdrop = true }: TreasureMapProps) {
+export default function TreasureMap({
+  sections,
+  backdrop = true,
+  theme,
+  avatar = null,
+}: TreasureMapProps) {
+  const mapTheme = theme ?? resolveMapTheme({});
   // Wider vertical spacing on phones, where the trail is a narrow single column.
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches,
@@ -123,6 +136,21 @@ export default function TreasureMap({ sections, backdrop = true }: TreasureMapPr
   });
   const traveledPath = traveledTo >= 1 ? toPath(points.slice(0, traveledTo + 1)) : null;
 
+  // The fog lifts a little past the furthest reached point, so the current stop
+  // and its treasure/challenge stay clear while everything not yet discovered
+  // (including preview regions) reads as unexplored ground.
+  let fogFrontier = traveledTo;
+  items.forEach((item, i) => {
+    if (item.kind === 'treasure') {
+      const section = sections[item.sectionIndex];
+      if (section.treasureUnlocked || section.challengeReady) {
+        fogFrontier = Math.max(fogFrontier, i);
+      }
+    }
+  });
+  const fogTop = fogFrontier >= 0 ? points[fogFrontier].y + rowGap * 0.55 : TOP_PAD - 24;
+  const showFog = fogTop < height - 64;
+
   return (
     <div
       className="relative w-full"
@@ -150,8 +178,8 @@ export default function TreasureMap({ sections, backdrop = true }: TreasureMapPr
         <path
           d={toPath(points)}
           fill="none"
-          stroke="#43280f"
-          strokeOpacity="0.45"
+          stroke={mapTheme.dash}
+          strokeOpacity={mapTheme.dashOpacity}
           strokeWidth="3"
           strokeLinecap="round"
           strokeDasharray="6 9"
@@ -159,16 +187,34 @@ export default function TreasureMap({ sections, backdrop = true }: TreasureMapPr
         />
         {traveledPath && (
           <path
+            // Re-key on progress so the draw-in replays when a new stop clears.
+            key={`trail-${traveledTo}`}
             d={traveledPath}
             fill="none"
-            stroke="#a94c22"
+            stroke={mapTheme.trail}
             strokeOpacity="0.95"
             strokeWidth="4"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
+            pathLength={1}
+            strokeDasharray={1}
+            className="motion-safe:animate-trail-draw"
+            style={{ filter: `drop-shadow(0 0 3px ${mapTheme.trailGlow})` }}
           />
         )}
       </svg>
+
+      {showFog && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 z-10 motion-safe:animate-fog-in"
+          style={{
+            top: `${fogTop}px`,
+            bottom: 0,
+            background: `linear-gradient(to bottom, rgba(${mapTheme.fogRgb},0) 0px, rgba(${mapTheme.fogRgb},${mapTheme.fogAlpha}) 150px)`,
+          }}
+        />
+      )}
 
       {sections.map((section, si) => (
         <SectionBanner
@@ -186,7 +232,7 @@ export default function TreasureMap({ sections, backdrop = true }: TreasureMapPr
           style={{ left: `${points[i].x}%`, top: `${points[i].y}px` }}
         >
           {item.kind === 'stop' ? (
-            <StopNode stop={item.stop} number={item.number} />
+            <StopNode stop={item.stop} number={item.number} avatar={avatar} />
           ) : (
             <Treasure
               unlocked={sections[item.sectionIndex].treasureUnlocked}
@@ -215,7 +261,15 @@ function SectionBanner({ number, topic, top }: { number: number; topic: string; 
   );
 }
 
-function StopNode({ stop, number }: { stop: MapStop; number: number }) {
+function StopNode({
+  stop,
+  number,
+  avatar = null,
+}: {
+  stop: MapStop;
+  number: number;
+  avatar?: AvatarId | null;
+}) {
   const isCompleted = stop.status === 'completed';
   const isCurrent = stop.status === 'current';
   const isLocked = stop.status === 'locked';
@@ -253,10 +307,20 @@ function StopNode({ stop, number }: { stop: MapStop; number: number }) {
       )}
 
       {isCurrent && (
-        <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2">
-          <span className="block origin-bottom motion-safe:animate-flag-bob">
-            <FlagIcon />
-          </span>
+        <span
+          className={`pointer-events-none absolute left-1/2 -translate-x-1/2 ${
+            avatar ? '-top-12' : '-top-9'
+          }`}
+        >
+          {avatar ? (
+            <span className="block motion-safe:animate-chest-bob">
+              <Avatar id={avatar} className="h-11 w-11 drop-shadow-md" />
+            </span>
+          ) : (
+            <span className="block origin-bottom motion-safe:animate-flag-bob">
+              <FlagIcon />
+            </span>
+          )}
         </span>
       )}
 
