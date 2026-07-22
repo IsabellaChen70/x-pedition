@@ -7,6 +7,8 @@ export type AuthContextValue = {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (displayName: string, email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  /** Anonymous sign-in for a throwaway demo session (no email/password). */
+  signInAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 

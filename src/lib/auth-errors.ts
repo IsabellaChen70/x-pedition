@@ -18,7 +18,8 @@ export function getAuthErrorMessage(error: unknown): string {
     case 'auth/unauthorized-domain':
       return 'This web address is not approved for sign-in yet. Add it in Firebase Authentication settings.';
     case 'auth/operation-not-allowed':
-      return 'Google sign-in is not turned on for this app yet.';
+    case 'auth/admin-restricted-operation':
+      return 'That sign-in method is not turned on for this app yet.';
     case 'auth/account-exists-with-different-credential':
       return 'That email already has an account with a different sign-in method.';
     case 'auth/network-request-failed':

@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
+  signInAnonymously,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -45,6 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       signInWithGoogle: async () => {
         await signInWithPopup(auth, googleProvider);
+      },
+      signInAsGuest: async () => {
+        await signInAnonymously(auth);
       },
       signOut: async () => {
         await firebaseSignOut(auth);

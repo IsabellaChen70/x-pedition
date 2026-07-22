@@ -6,7 +6,8 @@ import { getAuthErrorMessage } from '../lib/auth-errors';
 import { Alert, Button, Input } from '../components/ui';
 
 export default function AuthPage() {
-  const { user, loading, signInWithEmail, signInWithGoogle, signUpWithEmail } = useAuth();
+  const { user, loading, signInWithEmail, signInWithGoogle, signInAsGuest, signUpWithEmail } =
+    useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/';
@@ -16,6 +17,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [guestError, setGuestError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -64,6 +66,33 @@ export default function AuthPage() {
     }
   };
 
+  const handleGuestSignIn = async () => {
+    setGuestError('');
+    setError('');
+    try {
+      setSubmitting(true);
+      await signInAsGuest();
+      navigate(from, { replace: true });
+    } catch (authError) {
+      console.error('Auth error:', authError);
+      const code =
+        typeof authError === 'object' && authError !== null && 'code' in authError
+          ? String((authError as { code: unknown }).code)
+          : '';
+      // Anonymous sign-in fails with these codes until the provider is enabled in
+      // the Firebase console, so point the owner at the fix instead of a generic error.
+      if (code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation') {
+        setGuestError(
+          'Guest access is not turned on yet. Enable Anonymous sign-in in the Firebase console, or sign in with an account below.',
+        );
+      } else {
+        setGuestError(getAuthErrorMessage(authError));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4 py-8">
       <p className="font-display text-2xl font-bold tracking-tight text-ink">
@@ -72,10 +101,32 @@ export default function AuthPage() {
       <h1 className="mt-2 text-3xl font-semibold text-slate-900">
         {mode === 'sign-up' ? 'Create your account' : 'Welcome back'}
       </h1>
-      <p className="mt-2 text-muted">Sign in to save your progress and keep your lesson path.</p>
+      <p className="mt-2 text-muted">
+        Jump straight in as a guest, or sign in to keep your progress across devices.
+      </p>
+
+      <div className="mt-8">
+        <Button fullWidth disabled={submitting} onClick={handleGuestSignIn}>
+          Continue as guest
+        </Button>
+        <p className="mt-2 text-center text-xs text-muted">
+          Explore the whole app right away with a throwaway account. No email needed.
+        </p>
+        {guestError && (
+          <Alert variant="error" className="mt-3">
+            {guestError}
+          </Alert>
+        )}
+      </div>
+
+      <div className="my-6 flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-muted">
+        <span className="h-px flex-1 bg-slate-200" aria-hidden="true" />
+        or sign in
+        <span className="h-px flex-1 bg-slate-200" aria-hidden="true" />
+      </div>
 
       <form
-        className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
         onSubmit={handleEmailSubmit}
       >
         {mode === 'sign-up' && (
