@@ -1,14 +1,83 @@
+[![CI](https://github.com/IsabellaChen70/x-pedition/actions/workflows/ci.yml/badge.svg)](https://github.com/IsabellaChen70/x-pedition/actions/workflows/ci.yml)
+
 # X-pedition
 
-**Subject:** Algebra, Solving Equations (Intro)  
-**Persona:** A 7th grader, nervous about `x`, who learns best by doing (not watching videos).
+A learn-by-doing algebra tutor for a 7th grader who is anxious about `x`, framed as a treasure-map expedition. Live at **[x-pedition.web.app](https://x-pedition.web.app)**.
 
-X-pedition is a focused Brilliant-style learn-by-doing algebra app, framed as a treasure-map expedition. Learners solve hands-on problems (balance scales, tile sorting, expression building, sharing into groups), get instant hand-written feedback, and follow a course path with a streak, XP, levels, and badges. Progress persists across sessions and devices.
+## What I built
+
+X-pedition teaches early algebra through hands-on problems (balance scales, tile sorting, building expressions) with instant hand-written feedback and a course path that tracks a streak, XP, and levels. Progress saves per user and resumes across devices.
+
+The part I care most about is how it handles AI. X-pedition is deterministic-first: a math engine owns every correctness decision, and the language model sits behind that engine as a checked helper rather than a source of truth.
+
+- A math engine re-verifies every LLM-generated practice problem before a learner sees it, so a wrong problem does not reach the learner.
+- Socratic hints are authored and answer-safe, so a hint moves the learner forward without giving away the solution.
+- When the AI cannot be verified or reached, the feature falls back to deterministic logic, and no incorrect output is shown.
+- The whole app works with AI switched off. AI adds problem variety and free-text judging on top of a course that already teaches on its own.
+
+## Try it
+
+The live app is at **[x-pedition.web.app](https://x-pedition.web.app)**.
+
+**Fastest path: Continue as guest.** The sign-in screen has a **Continue as guest** button that starts an anonymous Firebase session, so you land straight in the app with your own throwaway progress. Nothing to fill in.
+
+> **One manual step for the owner:** the guest button needs the **Anonymous** provider turned on. In the [Firebase console](https://console.firebase.google.com/) go to **Authentication → Sign-in method → Anonymous → Enable**. Until that toggle is on, the button shows a short message pointing to the fallback below.
+
+**Fallback demo login.** If guest access is not enabled yet, use the demo account on the same screen:
+
+- Email: `demo@x-pedition.app`
+- Password: `xpedition-demo`
+
+> **Owner setup for the fallback:** create that account once through **Create account** on the sign-in screen (or in the Firebase console) so the credentials work. Any other email and password you enter via **Create account** also works right now, with no owner setup, since email/password sign-in is already enabled.
+
+## See it
+
+> These images are placeholders. The owner needs to capture and commit the files listed in [`docs/screenshots/`](docs/screenshots/). The paths below render as soon as the files exist, with no further edits.
+
+Balance scale (remove the same weight from both pans, and the scale rebalances live):
+
+![Balance-scale interaction](docs/screenshots/balance-scale.gif)
+
+Tile sorting (group like terms into the combine box):
+
+![Tile-sorting interaction](docs/screenshots/tile-sorting.png)
+
+Home treasure map (course path with streak, XP, and level):
+
+![Treasure-map home](docs/screenshots/treasure-map.png)
+
+## Deterministic-first AI
+
+The math engine decides what is correct. AI features are layered on top, each one either verified by the engine or written to be answer-safe, with a deterministic fallback.
+
+- **Socratic hints:** escalating, answer-safe hints in scaffolded practice. They come from deterministic logic, so they appear instantly and move the learner forward without stating the answer.
+- **Misconception detection:** on a wrong answer, the system matches the specific choice to a named mistake ("It looks like you changed only one side") and switches the hints to that mistake's fix. Deterministic.
+- **Explain my mistake:** a grounded, deterministic explanation that plugs the learner's actual choice back into the equation, so the explanation stays consistent with what they did.
+- **Convince Me (self-explanation):** on the last two mastery questions, the learner types why their answer works. An LLM judge reads it, rewards genuine reasoning, and lets the learner continue even when it is unsure, so it does not block progress. An authored "what if" follow-up adds a twist.
+- **Adaptive practice:** the Daily Treasure Dig leans toward skills the learner recently missed. Difficulty climbs only when a learner answers quickly and confidently on the first try, and eases after repeated misses.
+- **AI problem generation:** the LLM drafts fresh practice problems, and the math engine re-verifies each one before it appears. An instant local generator is the fallback, so practice keeps flowing and a wrong problem does not reach the learner.
+
+The LLM features run on OpenAI. In local development the key comes from a gitignored file; on the deployed site the calls go through auth-gated Firebase Cloud Functions, so the key stays server-side and out of the client bundle. Two feature flags hold no secrets and degrade safely: `VITE_AI_GENERATION` (AI problems, default off) and `VITE_RECAPTCHA_SITE_KEY` (App Check). Full rationale is in [docs/brainlift.md](docs/brainlift.md).
+
+With AI off or unreachable, the app still teaches: instant deterministic hints, deterministic mistake explanations, locally verified practice problems, and an encouraging close on self-explanation. The [AI on/off checklist](docs/ACCEPTANCE_TESTS.md) walks through both states.
+
+## Learn-by-doing core
+
+- Interactive step types: balance scale, tile combine, equal share, expression builder, and multiple choice.
+- Each lesson runs scaffolded practice (with hints and teaching pages) and then a hint-free mastery check that passes at 2 of 3.
+- Progress persists per user in Firestore and resumes mid-lesson across devices.
+- Habit loop: a daily streak, XP and levels, badges, and a lesson-complete celebration.
+- A linear course path drawn as a treasure map, plus a capstone Final Challenge that unlocks the treasure.
+
+## Learning science
+
+The design follows evidence on how novices learn: guided instruction over discovery (Kirschner, Sweller, Clark), retrieval practice (Roediger, Karpicke), self-explanation after a correct step (Chi), and desirable difficulties near an 80 to 85 percent success zone (Bjork, Rosenshine). A Phase 3 layer adds deterministic spaced repetition: a per-skill Leitner schedule with growing intervals decides what is due, drives the Daily Treasure Dig, and shows each skill as Learning, Practicing, or Mastered on the map. It uses date arithmetic rather than an LLM and is unit-tested. Sources and reasoning are in [docs/brainlift.md](docs/brainlift.md).
 
 ## Stack
 
 - **Frontend:** React, Vite, TypeScript, Tailwind CSS, React Router
-- **Backend:** Firebase Auth + Firestore
+- **Backend:** Firebase Authentication and Cloud Firestore
+- **AI:** OpenAI, called from auth-gated Firebase Cloud Functions in production
 - **Content:** structured JSON lessons in `content/` (a course plus 5 lessons)
 - **Hosting:** Firebase Hosting
 
@@ -22,70 +91,47 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-## Firebase
-
-Firebase Auth handles email/password and Google sign-in. Firestore stores per-user lesson
-progress, unlocks, and streaks. Firebase Hosting serves the built Vite app from `dist`.
-
-In Firebase Console, enable **Firestore Database**, then publish the rules in `firestore.rules`.
-Firebase Hosting is configured in `firebase.json` with a rewrite to `index.html` for React Router.
+In the Firebase console, enable **Firestore Database** and publish the rules in `firestore.rules`. For the guest button, also enable the **Anonymous** sign-in provider (see [Try it](#try-it)). Firebase Hosting is configured in `firebase.json` with a rewrite to `index.html` for React Router.
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start dev server |
-| `npm run build` | Production build |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Type-check and build for production |
 | `npm run lint` | ESLint |
-| `npm run validate:content` | Validate lesson JSON files |
-| `npm run preview` | Preview production build |
+| `npm test` | Run the Vitest unit suite |
+| `npm run validate:content` | Validate the lesson JSON files |
+| `npm run preview` | Preview the production build |
 | `npm run deploy:hosting` | Build and deploy Firebase Hosting |
 | `npm run deploy:firebase` | Build, deploy Hosting, and publish Firestore rules |
 
 ## Architecture
 
 ```
-content/           Lesson JSON (course + lessons)
+content/           Lesson JSON (course + 5 lessons)
 src/pages/         Route screens (Auth, Home, Lesson)
-src/components/    UI + interactives (BalanceScale, etc.)
+src/components/    UI and interactives (BalanceScale, tiles, map)
+src/auth/          Auth provider, context, and route guard
 src/lib/           Firebase, progress, content loaders
+src/lib/ai/        Math engine, verifier, hints, SRS, adaptive logic
+functions/         Cloud Functions (server-side OpenAI calls)
 ```
 
-See [docs/PRD.md](docs/PRD.md) for full requirements and
-[docs/ACCEPTANCE_TESTS.md](docs/ACCEPTANCE_TESTS.md) for the demo checklist.
+The lesson player reads a step from `currentPhase` and `currentStepIndex` and renders it, so new lessons are authored as JSON without touching the renderer. See [docs/PRD.md](docs/PRD.md) for full requirements and [docs/ACCEPTANCE_TESTS.md](docs/ACCEPTANCE_TESTS.md) for the demo checklist.
 
-## AI features (Phase 2)
+## Continuous integration
 
-AI acts like a teacher, not a chatbot: it scaffolds thinking and never gives answers, and the app teaches correctly with AI off. Everything is deterministic-first: a math engine checks correctness, and logic detects misconceptions and writes the hints. The LLM is used only where it's irreplaceable (judging free-text reasoning), always grounded.
-
-- **Socratic hints:** escalating, answer-safe, instant (deterministic) hints in scaffolded practice.
-- **Misconception detection:** names *why* a wrong answer is wrong and tailors the hints (deterministic).
-- **"Explain my mistake":** in practice, a grounded deterministic explanation that plugs your actual choice back in (never inconsistent).
-- **Self-explanation ("Convince Me"):** on mastery questions, the learner types their reasoning; an AI-judged feature, lenient and grounded, that rewards effort and never blocks, with an authored follow-up "what if" twist.
-- **Adaptive practice:** the Daily Dig leans toward the skills you miss; difficulty climbs only on quick, confident wins.
-- **AI problem generation:** LLM-authored practice problems, re-verified by the math engine with an instant local fallback, so the course never runs dry and AI never surfaces a wrong problem.
-
-The LLM features run on OpenAI: in local dev via a gitignored key, and on the deployed site via auth-gated Firebase Cloud Functions (the key stays server-side and is stripped from the client bundle). Flags (all degrade safely; no secrets in code): `VITE_AI_GENERATION` (AI problems, default off), `VITE_RECAPTCHA_SITE_KEY` (App Check). Full rationale in [docs/brainlift.md](docs/brainlift.md).
-
-## Learning science (Phase 3)
-
-Phase 3 adds a deterministic spaced-repetition layer so the app remembers each skill across sessions and schedules what to revisit. Like the rest of the app, it uses no LLM: it is pure date-and-box arithmetic, persisted per user and fully unit-tested.
-
-- **Spaced repetition:** a per-skill Leitner schedule with growing intervals (1, 2, 4, 9, 21 days). A correct review pushes the next one further out; a wrong answer brings the skill back the next day.
-- **Daily Treasure Dig (spacing-aware):** the daily practice runs the skills that are actually due first, interleaved across lessons, and falls back to free practice of everything learned when nothing is due.
-- **Durable mastery signal:** every skill reads Learning, Practicing, or Mastered, and "Mastered" requires surviving a chain of spaced reviews, not a single in-session win.
-- **On-map progress:** each completed lesson node shows its skill state (Learning, Practicing, Mastered) and a gold ping when it is due, plus a "recalled after a day" retention stat that shows the schedule working.
-
-Skill memory persists in the existing per-user progress document (no new data store, no rules change). Full rationale and the learning-science citations are in [docs/brainlift.md](docs/brainlift.md).
+Every push and pull request to `main` runs [the CI workflow](.github/workflows/ci.yml) on Node 22: `npm ci`, then `validate:content`, `test`, `lint`, and `build`. The badge at the top of this file reflects the latest run.
 
 ## AI workflow (Cursor)
 
-Built with an AI-first workflow in Cursor. Reusable tooling committed in this repo:
+Built with an AI-first workflow in Cursor, with reusable tooling committed to the repo:
 
-- **Skill: `lesson-author`** (`.cursor/skills/lesson-author/SKILL.md`): teaches the agent this repo's lesson JSON format, step types, learner-persona tone rules, and validation, so new lessons are authored consistently.
-- **Subagent: `qa-runner`** (`.cursor/agents/qa-runner.md`): runs the quality gates (`validate:content`, `test`, `lint`, `build`) in its own context and reports a concise pass/fail summary.
-- **Quality-gate loop**: a Cursor `/loop` that re-runs the qa-runner gates on an interval during development to catch regressions early.
+- **Skill `lesson-author`** (`.cursor/skills/lesson-author/SKILL.md`): teaches the agent this repo's lesson JSON format, step types, learner-persona tone, and validation, so new lessons stay consistent.
+- **Subagent `qa-runner`** (`.cursor/agents/qa-runner.md`): runs the quality gates (`validate:content`, `test`, `lint`, `build`) in its own context and reports a concise pass or fail summary.
+- **Quality-gate loop:** a Cursor `/loop` that re-runs the qa-runner gates on an interval during development to catch regressions early.
 
-## Deployed
+## License
 
-https://x-pedition.web.app
+MIT. See [LICENSE](LICENSE).
