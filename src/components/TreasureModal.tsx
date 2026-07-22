@@ -3,7 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import type { Badge } from '../lib/badges';
 import { fireMilestoneConfetti } from '../lib/confetti';
 import { Button } from './ui';
-import Chest from './Chest';
+import ChestReveal from './ChestReveal';
 
 type TreasureModalProps = {
   level: number;
@@ -92,7 +92,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function BigChest() {
-  return <Chest variant="open" className="h-28 w-auto drop-shadow-[0_0_22px_rgba(231,165,42,0.5)]" />;
+  return <ChestReveal className="h-28 w-auto drop-shadow-[0_0_22px_rgba(231,165,42,0.5)]" />;
 }
 
 function CheckIcon({ className }: { className?: string }) {

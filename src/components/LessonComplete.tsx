@@ -76,37 +76,53 @@ export default function LessonComplete({
   return (
     <div className={cardClass}>
       <div className="flex justify-center">
-        <ProgressRing
-          value={masteryCorrect}
-          max={masteryTotal}
-          size={108}
-          strokeWidth={9}
-          trackClassName={passed ? 'text-emerald-100' : 'text-amber-100'}
-          indicatorClassName={passed ? 'text-emerald-500' : 'text-amber-500'}
-          ariaLabel={`Mastery score: ${masteryCorrect} of ${masteryTotal} correct`}
-        >
-          <span
-            className={`nums text-2xl font-semibold ${passed ? 'text-emerald-800' : 'text-amber-800'}`}
+        <div className="relative">
+          <ProgressRing
+            value={masteryCorrect}
+            max={masteryTotal}
+            size={108}
+            strokeWidth={9}
+            trackClassName={passed ? 'text-emerald-100' : 'text-amber-100'}
+            indicatorClassName={passed ? 'text-emerald-500' : 'text-amber-500'}
+            ariaLabel={`Mastery score: ${masteryCorrect} of ${masteryTotal} correct`}
           >
-            {masteryCorrect}/{masteryTotal}
-          </span>
-          <span
-            className={`text-xs font-medium uppercase tracking-wide ${
-              passed ? 'text-emerald-600' : 'text-amber-600'
-            }`}
-          >
-            correct
-          </span>
-        </ProgressRing>
+            <span
+              className={`nums text-2xl font-semibold ${passed ? 'text-emerald-800' : 'text-amber-800'}`}
+            >
+              {masteryCorrect}/{masteryTotal}
+            </span>
+            <span
+              className={`text-xs font-medium uppercase tracking-wide ${
+                passed ? 'text-emerald-600' : 'text-amber-600'
+              }`}
+            >
+              correct
+            </span>
+          </ProgressRing>
+          {passed && (
+            <span
+              className="absolute -right-1 -top-1 motion-safe:animate-seal-pop"
+              aria-hidden="true"
+            >
+              <MasteredSeal />
+            </span>
+          )}
+        </div>
       </div>
 
-      <p className={labelClass}>{passed ? 'Lesson complete' : 'Try again later'}</p>
-      <h2 className={titleClass}>{lessonTitle}</h2>
-      <p className={bodyClass}>
-        {passed
-          ? 'You passed. Nice work sticking with it.'
-          : 'Review the practice, then try the lesson again.'}
-      </p>
+      {passed ? (
+        <>
+          <p className={labelClass}>Lesson complete</p>
+          <h2 className={titleClass}>You mastered {lessonTitle}</h2>
+          <p className={bodyClass}>Nice work sticking with it.</p>
+        </>
+      ) : (
+        <>
+          <p className={labelClass}>Try again later</p>
+          <h2 className={titleClass}>{lessonTitle}</h2>
+          <p className={bodyClass}>Review the practice, then try the lesson again.</p>
+        </>
+      )}
       {passed && nextLesson && (
         <p className="mt-4 text-base text-emerald-800">
           Up next: <span className="font-semibold">{nextLesson.title}</span>
@@ -160,6 +176,17 @@ export default function LessonComplete({
         </Link>
       </div>
     </div>
+  );
+}
+
+/** A small gold stamp that pops onto the score when a lesson is mastered. */
+function MasteredSeal() {
+  return (
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-b from-gold-300 to-gold-500 text-ink shadow-md ring-2 ring-gold-200">
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+        <path d="M12 2.5l2.6 5.7 6.2.6-4.7 4.1 1.4 6.1L12 17.8 6.5 19l1.4-6.1-4.7-4.1 6.2-.6z" />
+      </svg>
+    </span>
   );
 }
 
