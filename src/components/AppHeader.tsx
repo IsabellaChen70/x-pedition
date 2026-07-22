@@ -10,6 +10,7 @@ type AppHeaderProps = {
   celebrateStreak?: boolean;
   onSignOut?: () => void;
   onAchievements?: () => void;
+  onShop?: () => void;
   sticky?: boolean;
 };
 
@@ -22,6 +23,7 @@ export default function AppHeader({
   celebrateStreak,
   onSignOut,
   onAchievements,
+  onShop,
   sticky,
 }: AppHeaderProps) {
   const showStats = level !== undefined;
@@ -84,6 +86,18 @@ export default function AppHeader({
               </div>
             </>
           )}
+          {onShop && (
+            <button
+              type="button"
+              onClick={onShop}
+              title="Shop"
+              aria-label="Shop"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-sm font-bold text-parchment-50 transition duration-200 hover:bg-white/20 motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink sm:px-3.5"
+            >
+              <GemIcon className="h-4 w-4 text-gold-300 sm:h-5 sm:w-5" />
+              <span className="hidden sm:inline">Shop</span>
+            </button>
+          )}
           {onAchievements && (
             <button
               type="button"
@@ -138,6 +152,14 @@ function FlameIcon({ className }: { className?: string }) {
       <g transform="translate(-4.8 -0.6) scale(1.4)">
         <path d="M12 2s5 3.8 5 9a5 5 0 11-10 0c0-2 .9-3.2 2-4.2 0 1.1.6 1.9 1.5 1.9 1.1 0 1.6-1 1-3-.4-2.3.5-3.7.5-3.7z" />
       </g>
+    </svg>
+  );
+}
+
+function GemIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M6 3h12l3 5-9 13L3 8z" />
     </svg>
   );
 }

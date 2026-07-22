@@ -3,6 +3,8 @@ import { useAuth } from '../auth/auth-context';
 import AchievementsModal from '../components/AchievementsModal';
 import AppHeader from '../components/AppHeader';
 import BadgeUnlockModal from '../components/BadgeUnlockModal';
+import LevelUpModal from '../components/LevelUpModal';
+import ShopModal from '../components/ShopModal';
 import TreasureMap from '../components/TreasureMap';
 import type { MapSection, MapStop } from '../components/TreasureMap';
 import TreasureModal from '../components/TreasureModal';
@@ -14,25 +16,36 @@ import { getDueConcepts, skillState } from '../lib/ai/srs';
 import type { ConceptId } from '../lib/ai/types';
 import { computeBadges, newlyEarnedBadgeIds } from '../lib/badges';
 import type { Badge } from '../lib/badges';
+import { applyEquip, applyPurchase, canPurchase, resolveAvatar, resolveMapTheme } from '../lib/cosmetics';
+import type { Cosmetic } from '../lib/cosmetics';
 import { getCourse, getLesson, listLessons } from '../lib/content';
 import {
   acknowledgeBadges,
+  acknowledgeLevelCelebration,
   acknowledgeStreakCelebration,
   backfillCompletedSkills,
+  equipCosmetic,
   getCourseProgress,
   getDevDayOffset,
+  purchaseCosmetic,
   recordFinalChallengePassed,
   resetCourseProgress,
   setDevDayOffset,
+  shouldCelebrateLevel,
   shouldCelebrateStreak,
   todayKey,
 } from '../lib/progress';
 import type { CourseProgress } from '../lib/progress';
+import { earnedXp, levelForXp, spendableXp, XP_PER_LEVEL, xpIntoLevel } from '../lib/xp';
 
 const PracticeSession = lazy(() => import('../components/PracticeSession'));
 const FinalChallenge = lazy(() => import('../components/FinalChallenge'));
 
 type LessonCardStatus = 'completed' | 'current' | 'unlocked' | 'locked';
+
+/** Auto-celebrations shown on load, one at a time so confetti never doubles up. */
+type Celebration = { kind: 'levelup'; level: number } | { kind: 'badges'; badges: Badge[] };
+const CELEBRATION_ORDER: Record<Celebration['kind'], number> = { levelup: 0, badges: 1 };
 
 export default function HomePage() {
   const { signOut, user } = useAuth();
@@ -48,9 +61,11 @@ export default function HomePage() {
   const [showPractice, setShowPractice] = useState(false);
   const [reviewConcepts, setReviewConcepts] = useState<ConceptId[]>([]);
   const [showFinalChallenge, setShowFinalChallenge] = useState(false);
+  const [showShop, setShowShop] = useState(false);
   const [celebrateStreak, setCelebrateStreak] = useState(false);
-  const [unlockedBadges, setUnlockedBadges] = useState<Badge[]>([]);
+  const [celebrationQueue, setCelebrationQueue] = useState<Celebration[]>([]);
   const badgeCelebrationShown = useRef(false);
+  const levelCelebrationShown = useRef(false);
   const completedCount = progress?.completedLessonIds.length ?? 0;
   const streakCount = progress?.streakCount ?? 0;
   const practiceSolved = progress?.practice.solvedTotal ?? 0;
@@ -84,11 +99,17 @@ export default function HomePage() {
     masteryCorrect += correct;
     if (correct >= 3) perfectLessons += 1;
   }
-  const XP_PER_LEVEL = 300;
-  const totalXp =
-    completedCount * 100 + masteryCorrect * 20 + practiceSolved * 10 + reflectionsCompleted * 10;
-  const level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
-  const xpIntoLevel = totalXp % XP_PER_LEVEL;
+  // Earned XP is the lifetime total and the level signal; it only ever grows.
+  const totalXp = earnedXp({ completedCount, masteryCorrect, practiceSolved, reflectionsCompleted });
+  const level = levelForXp(totalXp);
+
+  // Shop state drives the spendable wallet (earned minus spent) and the applied
+  // cosmetics. Buying moves the wallet, never the earned total, so the level and
+  // its bar are untouched. Absent progress falls back to the default look.
+  const cosmetics = progress?.cosmetics ?? { unlocked: [], equipped: {}, xpSpent: 0 };
+  const spendable = spendableXp(totalXp, cosmetics.xpSpent);
+  const mapTheme = resolveMapTheme(cosmetics.equipped);
+  const avatar = resolveAvatar(cosmetics.equipped);
   const badges = computeBadges({
     completedCount,
     totalLessons: lessons.length,
@@ -121,7 +142,7 @@ export default function HomePage() {
       return 'Start the first lesson to begin.';
     }
     const priorLesson = lessons[lessonIndex - 1];
-    return `Pass ${priorLesson.title} to unlock this.`;
+    return `Pass ${priorLesson.title} to open this.`;
   };
 
   const handleResetProgress = async () => {
@@ -143,6 +164,26 @@ export default function HomePage() {
     } finally {
       setResettingProgress(false);
     }
+  };
+
+  // Buy a cosmetic: update the view optimistically, then persist additively. The
+  // pure guard means a stale click (already owned / unaffordable) is a no-op.
+  const handleBuyCosmetic = (cosmetic: Cosmetic) => {
+    if (!user || !progress || !canPurchase(cosmetic, cosmetics.unlocked, spendable)) {
+      return;
+    }
+    const nextCosmetics = applyPurchase(cosmetics, cosmetic, spendable);
+    setProgress((prev) => (prev ? { ...prev, cosmetics: nextCosmetics } : prev));
+    void purchaseCosmetic(user.uid, course.id, cosmetic.id, cosmetic.slot, cosmetic.price);
+  };
+
+  const handleEquipCosmetic = (cosmetic: Cosmetic) => {
+    if (!user || !progress) {
+      return;
+    }
+    const nextCosmetics = applyEquip(cosmetics, cosmetic);
+    setProgress((prev) => (prev ? { ...prev, cosmetics: nextCosmetics } : prev));
+    void equipCosmetic(user.uid, course.id, cosmetic.slot, cosmetic.id);
   };
 
   // Quietly re-read progress after a dig/review so the Skill Map and Daily Review
@@ -224,7 +265,8 @@ export default function HomePage() {
       return;
     }
     badgeCelebrationShown.current = true;
-    setUnlockedBadges(badges.filter((badge) => newIds.includes(badge.id)));
+    const earned = badges.filter((badge) => newIds.includes(badge.id));
+    setCelebrationQueue((queue) => [...queue, { kind: 'badges', badges: earned }]);
     void acknowledgeBadges(user.uid, course.id, newIds);
     setProgress((prev) =>
       prev
@@ -232,6 +274,25 @@ export default function HomePage() {
         : prev,
     );
   }, [badges, course.id, progress, user]);
+
+  // Celebrate reaching a new level. Level is derived from earned XP (not stored),
+  // so we persist the last-celebrated level to pop it exactly once. A fresh or
+  // legacy doc (baseline 0) syncs its current level silently the first time, so
+  // "level 1" and already-earned levels never trigger a spurious beat.
+  useEffect(() => {
+    if (!user || !progress || levelCelebrationShown.current) {
+      return;
+    }
+    levelCelebrationShown.current = true;
+    const last = progress.lastCelebratedLevel;
+    if (shouldCelebrateLevel(level, last)) {
+      setCelebrationQueue((queue) => [...queue, { kind: 'levelup', level }]);
+    }
+    if (level !== last) {
+      void acknowledgeLevelCelebration(user.uid, course.id, level);
+      setProgress((prev) => (prev ? { ...prev, lastCelebratedLevel: level } : prev));
+    }
+  }, [course.id, level, progress, user]);
 
   const getLessonStatus = (lessonId: string): LessonCardStatus => {
     if (progress?.completedLessonIds.includes(lessonId)) {
@@ -325,32 +386,57 @@ export default function HomePage() {
     },
   ];
 
+  // Show at most one auto-celebration at a time (level-up before badges) so their
+  // confetti bursts never overlap or double-fire on a single load.
+  const activeCelebration =
+    celebrationQueue.length > 0
+      ? [...celebrationQueue].sort(
+          (a, b) => CELEBRATION_ORDER[a.kind] - CELEBRATION_ORDER[b.kind],
+        )[0]
+      : null;
+  const dismissCelebration = (target: Celebration) =>
+    setCelebrationQueue((queue) => queue.filter((celebration) => celebration !== target));
+
   return (
     <div className="flex min-h-dvh flex-col">
       <AppHeader
         sticky
         level={level}
-        xp={xpIntoLevel}
+        xp={xpIntoLevel(totalXp)}
         xpToNext={XP_PER_LEVEL}
         streak={streakCount}
         celebrateStreak={celebrateStreak}
         onAchievements={() => setShowAchievements(true)}
+        onShop={() => setShowShop(true)}
         onSignOut={() => void signOut()}
       />
 
       <main
         className="relative flex-1 bg-cover bg-top bg-no-repeat"
         style={{
-          // The whole screen is the parchment map (a light wash is baked in for text
-          // contrast), behind the welcome bar AND the trail, one continuous surface.
-          backgroundImage: `linear-gradient(rgba(247,238,214,0.5), rgba(247,238,214,0.5)), url(${mapBg})`,
+          // The whole screen is the map, behind the welcome bar AND the trail, one
+          // continuous surface. The equipped theme's wash sits over the parchment
+          // image; a dark theme flips the welcome text below to a light ink.
+          backgroundImage: `${mapTheme.overlay}, url(${mapBg})`,
         }}
       >
         <div className="px-4 pb-6 pt-6 text-center sm:pt-8">
-          <h1 className="font-display text-2xl font-bold text-ink drop-shadow-[0_1px_2px_rgba(253,248,236,0.9)] sm:text-3xl">
+          <h1
+            className={`font-display text-2xl font-bold sm:text-3xl ${
+              mapTheme.dark
+                ? 'text-parchment-50 drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)]'
+                : 'text-ink drop-shadow-[0_1px_2px_rgba(253,248,236,0.9)]'
+            }`}
+          >
             Welcome back, {firstName}!
           </h1>
-          <p className="mt-1 text-sm font-medium text-ink/70 sm:text-base">Ready for today's adventure?</p>
+          <p
+            className={`mt-1 text-sm font-medium sm:text-base ${
+              mapTheme.dark ? 'text-parchment-200' : 'text-ink/70'
+            }`}
+          >
+            Ready for today's adventure?
+          </p>
           {isPracticeEnabled() && practiceLessonId && (
             <button
               type="button"
@@ -409,7 +495,7 @@ export default function HomePage() {
           </div>
         )}
 
-        <TreasureMap sections={sections} backdrop={false} />
+        <TreasureMap sections={sections} backdrop={false} theme={mapTheme} avatar={avatar} />
       </main>
 
       <footer className="flex items-center justify-center bg-parchment-100 px-4 py-4 text-center">
@@ -448,8 +534,31 @@ export default function HomePage() {
         />
       )}
 
-      {unlockedBadges.length > 0 && (
-        <BadgeUnlockModal badges={unlockedBadges} onClose={() => setUnlockedBadges([])} />
+      {showShop && progress && (
+        <ShopModal
+          spendable={spendable}
+          unlocked={cosmetics.unlocked}
+          equipped={cosmetics.equipped}
+          onBuy={handleBuyCosmetic}
+          onEquip={handleEquipCosmetic}
+          onClose={() => setShowShop(false)}
+        />
+      )}
+
+      {activeCelebration?.kind === 'levelup' && (
+        <LevelUpModal
+          level={activeCelebration.level}
+          spendable={spendable}
+          onOpenShop={() => setShowShop(true)}
+          onClose={() => dismissCelebration(activeCelebration)}
+        />
+      )}
+
+      {activeCelebration?.kind === 'badges' && (
+        <BadgeUnlockModal
+          badges={activeCelebration.badges}
+          onClose={() => dismissCelebration(activeCelebration)}
+        />
       )}
 
       {showPractice && practiceLessonId && user && (
