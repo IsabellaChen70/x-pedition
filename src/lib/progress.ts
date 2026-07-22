@@ -14,6 +14,8 @@ import { addDays, getDueConcepts, intervalForBox, reviewSkill, weaknessFromSkill
 import type { SkillMemory } from './ai/srs';
 import type { ConceptId } from './ai/types';
 import type { CosmeticSlot, CosmeticsState } from './cosmetics';
+import { addMistakeToLog, normalizeMistakeLog, removeMistakeFromLog } from './mistakes';
+import type { MistakeLogEntry } from './mistakes';
 
 type LessonProgressPhase = 'scaffolded' | 'mastery';
 
@@ -66,6 +68,8 @@ export type CourseProgress = {
   cosmetics: CosmeticsState;
   /** Per-skill spaced-repetition memory powering due-today review and the skill map. */
   skills?: Partial<Record<ConceptId, SkillMemory>>;
+  /** Recent missed problems, additive and capped, for the Review deck to revisit. */
+  mistakeLog: MistakeLogEntry[];
 };
 
 function progressRef(userId: string, courseId: string) {
@@ -122,6 +126,7 @@ export function normalizeProgress(data: unknown, firstLessonId: string): CourseP
     lastCelebratedLevel: progress.lastCelebratedLevel ?? 0,
     cosmetics: normalizeCosmetics(progress.cosmetics),
     skills: progress.skills ?? {},
+    mistakeLog: normalizeMistakeLog(progress.mistakeLog),
   };
 }
 
@@ -243,6 +248,7 @@ export async function getCourseProgress(
       lastCelebratedLevel: 0,
       cosmetics: { unlocked: [], equipped: {}, xpSpent: 0 },
       skills: {},
+      mistakeLog: [],
     };
     await setDoc(ref, {
       ...initialProgress,
@@ -275,6 +281,7 @@ export async function resetCourseProgress(
     lastCelebratedLevel: 0,
     cosmetics: { unlocked: [], equipped: {}, xpSpent: 0 },
     skills: {},
+    mistakeLog: [],
   };
 
   await setDoc(progressRef(userId, courseId), {
@@ -702,4 +709,46 @@ export async function getReviewSetup(
     bestLevel: normalizePractice(data?.practice).bestLevel,
     skills,
   };
+}
+
+/**
+ * Record one missed problem into the additive, capped mistake log so it can be
+ * revisited in the Review deck. Reads the current log once, shapes it purely
+ * (dedupe by id, newest first, cap), then merge-writes just that field, so it
+ * never touches lesson, streak, skill, or cosmetics progress. Returns the next
+ * log so the caller can reflect it locally without a re-read.
+ */
+export async function recordMistake(
+  userId: string,
+  courseId: string,
+  entry: MistakeLogEntry,
+): Promise<MistakeLogEntry[]> {
+  const data = await readProgressData(userId, courseId).catch(() => undefined);
+  const next = addMistakeToLog(normalizeMistakeLog(data?.mistakeLog), entry);
+  await setDoc(
+    progressRef(userId, courseId),
+    { mistakeLog: next, updatedAt: serverTimestamp() },
+    { merge: true },
+  );
+  return next;
+}
+
+/**
+ * Clear one entry from the mistake log (e.g. after the learner retries it
+ * successfully in the Review deck). Additive merge of the single field; returns
+ * the next log for the caller to reflect locally.
+ */
+export async function resolveMistake(
+  userId: string,
+  courseId: string,
+  id: string,
+): Promise<MistakeLogEntry[]> {
+  const data = await readProgressData(userId, courseId).catch(() => undefined);
+  const next = removeMistakeFromLog(normalizeMistakeLog(data?.mistakeLog), id);
+  await setDoc(
+    progressRef(userId, courseId),
+    { mistakeLog: next, updatedAt: serverTimestamp() },
+    { merge: true },
+  );
+  return next;
 }

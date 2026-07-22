@@ -10,7 +10,7 @@ import {
   toMcStep,
 } from '../lib/ai/generate';
 import type { Difficulty } from '../lib/ai/generate';
-import { CONCEPT_LABELS, conceptsForLesson } from '../lib/ai/concepts';
+import { CONCEPT_LABELS, conceptsForLesson, lessonForConcept } from '../lib/ai/concepts';
 import { bumpSessionWeakness, digReviewCorrect, rankConceptMistakes } from '../lib/ai/adaptive';
 import { explainWrongChoice, solutionSteps } from '../lib/ai/solution';
 import { intervalForBox, reviewSkill } from '../lib/ai/srs';
@@ -20,11 +20,13 @@ import { getCourse } from '../lib/content';
 import {
   getPracticeSetup,
   getReviewSetup,
+  recordMistake,
   recordPracticeSession,
   recordSkillReview,
   todayKey,
 } from '../lib/progress';
 import type { PracticeSetup } from '../lib/progress';
+import { practiceMistakeId } from '../lib/mistakes';
 import { validateMcStep } from '../lib/validation';
 import McStepView from './McStepView';
 import { Button, Card } from './ui';
@@ -449,9 +451,21 @@ function PracticeRunner({
     wrongAttempts.current += 1;
     if (problem) {
       weakness.current = bumpSessionWeakness(weakness.current, problem.concept);
-      // Count each problem missed once (not every guess) for the revisit nudge.
+      // Count each problem missed once (not every guess) for the revisit nudge,
+      // and persist it (once per problem) into the Review deck's mistake log.
       if (firstMissOnThisProblem) {
         mistakes.current[problem.concept] = (mistakes.current[problem.concept] ?? 0) + 1;
+        void recordMistake(userId, courseId, {
+          id: practiceMistakeId(problem.concept),
+          concept: problem.concept,
+          misconceptionId: null,
+          prompt: problem.prompt,
+          wrongAnswer: problem.options[index] ?? '',
+          correctAnswer: problem.options[problem.correctIndex] ?? '',
+          lessonId: lessonForConcept(problem.concept),
+          source: 'practice',
+          at: Date.now(),
+        });
       }
     }
     if (wrongAttempts.current >= WRONG_GUESSES_TO_EASE && !easedThisProblem.current) {

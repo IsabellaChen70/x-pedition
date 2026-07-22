@@ -8,11 +8,13 @@ import {
 import {
   completeLessonProgress,
   getCourseProgress,
+  recordMistake,
   recordSkillReview,
   saveLessonProgress,
   todayKey,
 } from '../lib/progress';
 import type { LessonAnswerRecord, LessonProgressSnapshot } from '../lib/progress';
+import { lessonMistakeId } from '../lib/mistakes';
 import { conceptForLesson } from '../lib/ai/concepts';
 import { intervalForBox, reviewSkill } from '../lib/ai/srs';
 import type { SkillMemory } from '../lib/ai/srs';
@@ -28,6 +30,7 @@ import {
 import type { TileGrouping } from '../lib/validation';
 import { deterministicHints } from '../lib/ai/hint';
 import { detectMisconception, getMisconception, summarizeMisconceptions } from '../lib/ai/misconception';
+import type { LearnerAnswer } from '../lib/ai/misconception';
 import type { MisconceptionId } from '../lib/ai/types';
 import type { StepHint } from './StepActions';
 import type {
@@ -332,6 +335,33 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
     }
   };
 
+  // Persist a wrong answer into the additive mistake log so it can be revisited
+  // later in the Review deck. Keyed by step, so re-missing updates one entry
+  // rather than piling up. Detection runs in both phases here (the log wants the
+  // "why" even in the mastery check). Purely additive; never blocks the learner.
+  const noteMistake = (
+    wrongStep: Exclude<Step, { type: 'concept' }>,
+    learnerAnswer: LearnerAnswer,
+    wrongAnswer: string,
+    correctAnswer: string,
+  ) => {
+    const concept = conceptForLesson(lesson.id);
+    if (!concept) {
+      return;
+    }
+    void recordMistake(userId, courseId, {
+      id: lessonMistakeId(lesson.id, wrongStep.id),
+      concept,
+      misconceptionId: detectMisconception(wrongStep, learnerAnswer),
+      prompt: wrongStep.prompt,
+      wrongAnswer,
+      correctAnswer,
+      lessonId: lesson.id,
+      source: 'lesson',
+      at: Date.now(),
+    });
+  };
+
   const handleMcSubmit = (selectedIndex: number) => {
     if (step?.type !== 'mc') {
       return;
@@ -351,6 +381,14 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
       correctAnswer: step.options[step.correctIndex] ?? 'Correct answer unavailable',
     });
     void persistProgress(buildProgressSnapshot({ answerHistory: nextAnswerHistory }));
+    if (!result.ok) {
+      noteMistake(
+        step,
+        { type: 'mc', selectedIndex },
+        step.options[selectedIndex] ?? 'No answer',
+        step.options[step.correctIndex] ?? 'Correct answer unavailable',
+      );
+    }
     recordMasteryResult(step.id, result.ok);
   };
 
@@ -382,6 +420,14 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
       correctAnswer: getScaleCorrectAnswerLabel(step),
     });
     void persistProgress(buildProgressSnapshot({ answerHistory: nextAnswerHistory }));
+    if (!result.ok) {
+      noteMistake(
+        step,
+        { type: 'scale_interactive', removalApplied, removedFromBoth, mcIndex },
+        getScaleAnswerLabel(step, mcIndex),
+        getScaleCorrectAnswerLabel(step),
+      );
+    }
     recordMasteryResult(step.id, result.ok);
   };
 
@@ -404,6 +450,14 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
       correctAnswer: step.validation.targetLabel,
     });
     void persistProgress(buildProgressSnapshot({ answerHistory: nextAnswerHistory }));
+    if (!result.ok) {
+      noteMistake(
+        step,
+        { type: 'tile_combine', grouping: grouped },
+        getTileAnswerLabel(step, grouped),
+        step.validation.targetLabel,
+      );
+    }
     recordMasteryResult(step.id, result.ok);
   };
 
@@ -426,6 +480,14 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
       correctAnswer: step.validation.correctAnswer,
     });
     void persistProgress(buildProgressSnapshot({ answerHistory: nextAnswerHistory }));
+    if (!result.ok) {
+      noteMistake(
+        step,
+        { type: 'equal_share', groupCounts },
+        getEqualShareAnswerLabel(step, groupCounts),
+        step.validation.correctAnswer,
+      );
+    }
     recordMasteryResult(step.id, result.ok);
   };
 
@@ -448,6 +510,14 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
       correctAnswer: step.validation.correctAnswer,
     });
     void persistProgress(buildProgressSnapshot({ answerHistory: nextAnswerHistory }));
+    if (!result.ok) {
+      noteMistake(
+        step,
+        { type: 'expression_builder', tokens },
+        tokens.join(' '),
+        step.validation.correctAnswer,
+      );
+    }
     recordMasteryResult(step.id, result.ok);
   };
 
