@@ -13,6 +13,7 @@ import { conceptForLesson, lessonForConcept } from './ai/concepts';
 import { addDays, getDueConcepts, intervalForBox, reviewSkill, weaknessFromSkills } from './ai/srs';
 import type { SkillMemory } from './ai/srs';
 import type { ConceptId } from './ai/types';
+import type { CosmeticSlot, CosmeticsState } from './cosmetics';
 
 type LessonProgressPhase = 'scaffolded' | 'mastery';
 
@@ -59,6 +60,10 @@ export type CourseProgress = {
   reflectionsCompleted: number;
   /** Passed the capstone Final Challenge (one puzzle per lesson), unlocks the treasure. */
   finalChallengePassed: boolean;
+  /** Level the player last saw celebrated, so a level-up beat pops exactly once. */
+  lastCelebratedLevel: number;
+  /** Shop state: unlocked cosmetic ids, equipped selections, and XP spent. */
+  cosmetics: CosmeticsState;
   /** Per-skill spaced-repetition memory powering due-today review and the skill map. */
   skills?: Partial<Record<ConceptId, SkillMemory>>;
 };
@@ -76,6 +81,29 @@ function normalizePractice(data: unknown): PracticeStats {
   };
 }
 
+const COSMETIC_SLOTS: CosmeticSlot[] = ['mapTheme', 'avatar'];
+
+/** Parse the shop state defensively; legacy docs with no shop yet read as empty. */
+function normalizeCosmetics(data: unknown): CosmeticsState {
+  const cosmetics = typeof data === 'object' && data !== null ? data as Partial<CosmeticsState> : {};
+  const unlocked = Array.isArray(cosmetics.unlocked)
+    ? cosmetics.unlocked.filter((id): id is string => typeof id === 'string')
+    : [];
+  const equippedRaw =
+    typeof cosmetics.equipped === 'object' && cosmetics.equipped !== null
+      ? (cosmetics.equipped as Record<string, unknown>)
+      : {};
+  const equipped: CosmeticsState['equipped'] = {};
+  for (const slot of COSMETIC_SLOTS) {
+    const value = equippedRaw[slot];
+    if (typeof value === 'string') {
+      equipped[slot] = value;
+    }
+  }
+  const xpSpent = typeof cosmetics.xpSpent === 'number' && cosmetics.xpSpent > 0 ? cosmetics.xpSpent : 0;
+  return { unlocked, equipped, xpSpent };
+}
+
 export function normalizeProgress(data: unknown, firstLessonId: string): CourseProgress {
   const progress = typeof data === 'object' && data !== null ? data as Partial<CourseProgress> : {};
 
@@ -91,6 +119,8 @@ export function normalizeProgress(data: unknown, firstLessonId: string): CourseP
     practice: normalizePractice(progress.practice),
     reflectionsCompleted: progress.reflectionsCompleted ?? 0,
     finalChallengePassed: progress.finalChallengePassed ?? false,
+    lastCelebratedLevel: progress.lastCelebratedLevel ?? 0,
+    cosmetics: normalizeCosmetics(progress.cosmetics),
     skills: progress.skills ?? {},
   };
 }
@@ -105,6 +135,16 @@ export function shouldCelebrateStreak(
   lastCelebratedStreak: number,
 ): boolean {
   return streakCount > 0 && streakCount > lastCelebratedStreak;
+}
+
+/**
+ * Whether a level-up beat should play. Only fires once a baseline has been
+ * tracked (> 0) and the level has advanced past it. A fresh or legacy doc has a
+ * baseline of 0, so its current level is synced silently on first load (see
+ * HomePage) rather than celebrating "level 1" or an already-earned level.
+ */
+export function shouldCelebrateLevel(level: number, lastCelebratedLevel: number): boolean {
+  return lastCelebratedLevel > 0 && level > lastCelebratedLevel;
 }
 
 // Every seventh day is a milestone (7, 14, 21, ...). Milestones earn a bigger,
@@ -200,6 +240,8 @@ export async function getCourseProgress(
       practice: { bestLevel: 0, solvedTotal: 0, digsCompleted: 0 },
       reflectionsCompleted: 0,
       finalChallengePassed: false,
+      lastCelebratedLevel: 0,
+      cosmetics: { unlocked: [], equipped: {}, xpSpent: 0 },
       skills: {},
     };
     await setDoc(ref, {
@@ -230,6 +272,8 @@ export async function resetCourseProgress(
     practice: { bestLevel: 0, solvedTotal: 0, digsCompleted: 0 },
     reflectionsCompleted: 0,
     finalChallengePassed: false,
+    lastCelebratedLevel: 0,
+    cosmetics: { unlocked: [], equipped: {}, xpSpent: 0 },
     skills: {},
   };
 
@@ -255,6 +299,69 @@ export async function acknowledgeStreakCelebration(
     progressRef(userId, courseId),
     {
       lastCelebratedStreak: streakCount,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+/**
+ * Records the level whose level-up beat has been shown, so it pops exactly once
+ * (here or on another device). Additive merge, mirrors the streak celebration.
+ */
+export async function acknowledgeLevelCelebration(
+  userId: string,
+  courseId: string,
+  level: number,
+): Promise<void> {
+  await setDoc(
+    progressRef(userId, courseId),
+    {
+      lastCelebratedLevel: level,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+/**
+ * Buy a cosmetic: additively mark it owned, equip it, and advance `xpSpent` by
+ * its price. Purely a merge write of the `cosmetics` map, so it never touches
+ * earned XP (the level signal) or any lesson/streak/skill progress. Callers gate
+ * on `canPurchase` first; `xpSpent` grows so the spendable wallet shrinks.
+ */
+export async function purchaseCosmetic(
+  userId: string,
+  courseId: string,
+  cosmeticId: string,
+  slot: CosmeticSlot,
+  price: number,
+): Promise<void> {
+  await setDoc(
+    progressRef(userId, courseId),
+    {
+      cosmetics: {
+        unlocked: arrayUnion(cosmeticId),
+        equipped: { [slot]: cosmeticId },
+        xpSpent: increment(Math.max(0, price)),
+      },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+/** Equip an already-owned cosmetic for its slot. Additive merge of one field. */
+export async function equipCosmetic(
+  userId: string,
+  courseId: string,
+  slot: CosmeticSlot,
+  cosmeticId: string,
+): Promise<void> {
+  await setDoc(
+    progressRef(userId, courseId),
+    {
+      cosmetics: { equipped: { [slot]: cosmeticId } },
       updatedAt: serverTimestamp(),
     },
     { merge: true },

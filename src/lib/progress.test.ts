@@ -4,6 +4,7 @@ import {
   isStreakMilestone,
   nextStreakCount,
   normalizeProgress,
+  shouldCelebrateLevel,
   shouldCelebrateStreak,
   todayKey,
   yesterdayKey,
@@ -62,6 +63,22 @@ describe('shouldCelebrateStreak', () => {
 
   it('does not celebrate when somehow behind the last celebrated value', () => {
     expect(shouldCelebrateStreak(2, 5)).toBe(false);
+  });
+});
+
+describe('shouldCelebrateLevel', () => {
+  it('celebrates when the level advances past the last celebrated value', () => {
+    expect(shouldCelebrateLevel(3, 2)).toBe(true);
+  });
+
+  it('does not celebrate the same level twice', () => {
+    expect(shouldCelebrateLevel(3, 3)).toBe(false);
+  });
+
+  it('stays silent with an untracked baseline so level 1 never pops', () => {
+    // A fresh/legacy doc has lastCelebratedLevel 0; HomePage syncs it silently.
+    expect(shouldCelebrateLevel(1, 0)).toBe(false);
+    expect(shouldCelebrateLevel(3, 0)).toBe(false);
   });
 });
 
@@ -129,5 +146,48 @@ describe('normalizeProgress', () => {
 
   it('preserves a stored finalChallengePassed value', () => {
     expect(normalizeProgress({ finalChallengePassed: true }, 'lesson-01').finalChallengePassed).toBe(true);
+  });
+
+  it('defaults lastCelebratedLevel to 0 for legacy docs', () => {
+    expect(normalizeProgress({ streakCount: 1 }, 'lesson-01').lastCelebratedLevel).toBe(0);
+  });
+
+  it('preserves a stored lastCelebratedLevel value', () => {
+    expect(normalizeProgress({ lastCelebratedLevel: 4 }, 'lesson-01').lastCelebratedLevel).toBe(4);
+  });
+
+  it('defaults cosmetics to empty for legacy docs', () => {
+    expect(normalizeProgress({ streakCount: 1 }, 'lesson-01').cosmetics).toEqual({
+      unlocked: [],
+      equipped: {},
+      xpSpent: 0,
+    });
+  });
+
+  it('preserves stored cosmetics and keeps only known equipped slots', () => {
+    const result = normalizeProgress(
+      {
+        cosmetics: {
+          unlocked: ['map-verdant', 'avatar-explorer'],
+          equipped: { mapTheme: 'map-verdant', avatar: 'avatar-explorer', bogus: 'x' },
+          xpSpent: 450,
+        },
+      },
+      'lesson-01',
+    );
+    expect(result.cosmetics.unlocked).toEqual(['map-verdant', 'avatar-explorer']);
+    expect(result.cosmetics.equipped).toEqual({
+      mapTheme: 'map-verdant',
+      avatar: 'avatar-explorer',
+    });
+    expect(result.cosmetics.xpSpent).toBe(450);
+  });
+
+  it('drops malformed cosmetic fields defensively', () => {
+    const result = normalizeProgress(
+      { cosmetics: { unlocked: 'nope', equipped: 5, xpSpent: -10 } },
+      'lesson-01',
+    );
+    expect(result.cosmetics).toEqual({ unlocked: [], equipped: {}, xpSpent: 0 });
   });
 });
