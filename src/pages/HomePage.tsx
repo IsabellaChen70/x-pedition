@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
 import AchievementsModal from '../components/AchievementsModal';
 import AppHeader from '../components/AppHeader';
@@ -39,6 +40,7 @@ import {
 } from '../lib/progress';
 import type { CourseProgress } from '../lib/progress';
 import { removeMistakeFromLog } from '../lib/mistakes';
+import { resolveResume } from '../lib/resume';
 import { earnedXp, levelForXp, spendableXp, XP_PER_LEVEL, xpIntoLevel } from '../lib/xp';
 
 const PracticeSession = lazy(() => import('../components/PracticeSession'));
@@ -141,6 +143,27 @@ export default function HomePage() {
     const phaseLabel = saved.phase === 'scaffolded' ? 'Practice' : 'Mastery';
     return `${phaseLabel} ${saved.stepIndex + 1}/${total}`;
   };
+
+  // The prominent Continue action for a returning learner: resume the in-progress
+  // lesson at its saved step, start the next unlocked lesson, or replay once the
+  // course is done. LessonPlayer restores the exact phase + step from Firestore.
+  const resumeTarget = progress
+    ? resolveResume(progress, course.lessonOrder, (id) => getLesson(id) !== null)
+    : null;
+  const resumeTitle = resumeTarget
+    ? course.lessons[resumeTarget.lessonId]?.title ?? resumeTarget.lessonId
+    : '';
+  const resumeVerb =
+    resumeTarget?.mode === 'continue'
+      ? 'Continue'
+      : resumeTarget?.mode === 'start'
+        ? 'Start lesson'
+        : 'Play again';
+  const resumeProgressLabel = resumeTarget ? getLessonProgressLabel(resumeTarget.lessonId) : null;
+  const resumeHelper =
+    resumeTarget?.mode === 'continue' && resumeProgressLabel
+      ? `${resumeTitle} · ${resumeProgressLabel}`
+      : resumeTitle;
 
   const getLockedReason = (lessonIndex: number): string => {
     if (lessonIndex <= 0) {
@@ -453,6 +476,25 @@ export default function HomePage() {
           >
             Ready for today's adventure?
           </p>
+          {resumeTarget && (
+            <div className="mt-5 flex justify-center">
+              <Link
+                to={`/lesson/${resumeTarget.lessonId}`}
+                aria-label={`${resumeVerb}: ${resumeTitle}`}
+                className="inline-flex max-w-full items-center gap-3 rounded-2xl bg-gold-500 px-6 py-3.5 text-left shadow-lg ring-1 ring-gold-600/30 transition duration-200 hover:bg-gold-400 hover:shadow-xl motion-safe:hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100"
+              >
+                <PlayIcon className="h-6 w-6 shrink-0 text-ink" />
+                <span className="min-w-0">
+                  <span className="block font-display text-lg font-bold leading-tight text-ink">
+                    {resumeVerb}
+                  </span>
+                  <span className="block truncate text-sm font-medium text-ink/70">
+                    {resumeHelper}
+                  </span>
+                </span>
+              </Link>
+            </div>
+          )}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             {isPracticeEnabled() && practiceLessonId && (
               <button
@@ -651,6 +693,14 @@ function ShovelIcon({ className }: { className?: string }) {
       <path d="M10 2.5h4v2.2h-4z" />
       <path d="M11 3.5h2v8.5h-2z" />
       <path d="M7.8 11.5h8.4l-1.7 5.3a2.5 2.5 0 0 1-5 0z" />
+    </svg>
+  );
+}
+
+function PlayIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M8 5v14l11-7z" />
     </svg>
   );
 }
