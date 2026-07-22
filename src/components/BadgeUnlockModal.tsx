@@ -49,7 +49,7 @@ export default function BadgeUnlockModal({ badges, onClose }: BadgeUnlockModalPr
                     key={badge.id}
                     className="flex items-center gap-3 rounded-2xl border border-gold-400 bg-gold-300/25 p-3 shadow-sm"
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold-400 text-ink shadow-sm ring-2 ring-gold-300">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold-400 text-on-gold shadow-sm ring-2 ring-gold-300">
                       <MedalIcon className="h-5 w-5" />
                     </span>
                     <div>

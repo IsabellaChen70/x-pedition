@@ -873,7 +873,7 @@ function getEqualShareAnswerLabel(step: EqualShareStep, groupCounts: number[]): 
 function MasteryIntro({ onBegin }: { onBegin: () => void }) {
   return (
     <Card padding="lg" className="text-center motion-safe:animate-dialog-in">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold-400 text-ink shadow-sm">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold-400 text-on-gold shadow-sm">
         <FlagIcon />
       </div>
       <p className="mt-4 text-sm font-semibold uppercase tracking-wide text-brand-700">

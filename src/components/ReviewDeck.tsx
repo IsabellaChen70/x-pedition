@@ -5,6 +5,7 @@ import { CONCEPT_LABELS } from '../lib/ai/concepts';
 import { getMisconception } from '../lib/ai/misconception';
 import { explainWrongChoice } from '../lib/ai/solution';
 import { validateMcStep } from '../lib/validation';
+import { playCelebration } from '../lib/sound';
 import type { MistakeLogEntry } from '../lib/mistakes';
 import McStepView from './McStepView';
 import { Button, Card } from './ui';
@@ -159,6 +160,7 @@ function ReviewRetry({
     if (result.ok && !cleared) {
       setCleared(true);
       onCleared();
+      playCelebration();
     }
   };
 

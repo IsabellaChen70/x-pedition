@@ -149,14 +149,16 @@ export default function SelfExplain({
         <p className="font-display text-lg font-bold text-ink">{heading}</p>
         <p
           className={`mt-2 rounded-xl border px-4 py-3 text-sm leading-relaxed text-ink ${
-            needsRetry ? 'border-gold-400/60 bg-gold-400/10' : 'border-brand-100 bg-brand-50'
+            needsRetry
+              ? 'border-gold-400/60 bg-gold-400/10'
+              : 'border-brand-100 bg-brand-50 dark:border-brand-900/50 dark:bg-brand-950/40'
           }`}
         >
           {message}
         </p>
         <p className="mt-2 text-sm font-semibold text-gold-700">+{XP_PER_REFLECTION} XP</p>
         {accepted && followUp && (
-          <div className="mt-4 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
+          <div className="mt-4 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 dark:border-brand-900/50 dark:bg-brand-950/40">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-semibold text-brand-800">One more to think about</p>
               <span className="shrink-0 rounded-full bg-gold-400/30 px-2 py-0.5 text-xs font-bold text-gold-700">

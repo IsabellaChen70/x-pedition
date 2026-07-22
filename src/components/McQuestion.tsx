@@ -27,13 +27,17 @@ export default function McQuestion({
         let style =
           'flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border-2 px-4 py-3 text-left text-base font-medium transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ';
         if (isCorrect) {
-          style += 'border-emerald-500 bg-emerald-50 text-emerald-900';
+          style +=
+            'border-emerald-500 bg-emerald-50 text-emerald-900 dark:border-emerald-500/60 dark:bg-emerald-500/15 dark:text-emerald-100';
         } else if (isWrong) {
-          style += 'border-amber-400 bg-amber-50 text-amber-900';
+          style +=
+            'border-amber-400 bg-amber-50 text-amber-900 dark:border-amber-500/60 dark:bg-amber-500/15 dark:text-amber-100';
         } else if (isSelected) {
-          style += 'border-brand-600 bg-brand-50 text-brand-900';
+          style +=
+            'border-brand-600 bg-brand-50 text-brand-900 dark:border-brand-400 dark:bg-brand-500/20 dark:text-brand-100';
         } else {
-          style += 'border-parchment-300 bg-parchment-50 text-ink hover:border-brand-400 hover:bg-brand-50';
+          style +=
+            'border-parchment-300 bg-parchment-50 text-ink hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/15';
         }
 
         return (

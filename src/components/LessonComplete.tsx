@@ -5,6 +5,7 @@ import { CONCEPT_LABELS } from '../lib/ai/concepts';
 import type { MisconceptionSummary } from '../lib/ai/misconception';
 import type { ConceptId } from '../lib/ai/types';
 import { fireConfetti } from '../lib/confetti';
+import { playCelebration } from '../lib/sound';
 import { Button, buttonClasses } from './ui';
 import ProgressRing from './ProgressRing';
 
@@ -46,6 +47,7 @@ export default function LessonComplete({
   useEffect(() => {
     if (passed) {
       fireConfetti();
+      playCelebration();
     }
   }, [passed]);
 
@@ -182,7 +184,7 @@ export default function LessonComplete({
 /** A small gold stamp that pops onto the score when a lesson is mastered. */
 function MasteredSeal() {
   return (
-    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-b from-gold-300 to-gold-500 text-ink shadow-md ring-2 ring-gold-200">
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-b from-gold-300 to-gold-500 text-on-gold shadow-md ring-2 ring-gold-200">
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
         <path d="M12 2.5l2.6 5.7 6.2.6-4.7 4.1 1.4 6.1L12 17.8 6.5 19l1.4-6.1-4.7-4.1 6.2-.6z" />
       </svg>

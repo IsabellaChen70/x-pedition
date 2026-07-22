@@ -148,7 +148,7 @@ function ReviewCard({
             </div>
           )}
           {answer.reflection && (
-            <div className="rounded-xl bg-brand-50 px-4 py-3 sm:col-span-2">
+            <div className="rounded-xl bg-brand-50 px-4 py-3 sm:col-span-2 dark:bg-brand-950/40">
               <p className="text-xs font-medium uppercase tracking-wide text-brand-700">
                 Your explanation
               </p>

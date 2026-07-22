@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Dark mode is driven by a `dark` class on <html> (set by the settings provider
+ * and a no-flash script in index.html), not the OS media query, so the toggle can
+ * override the system. This makes any `dark:` utility key off that class too. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Hanken Grotesk Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-display: "Fredoka Variable", "Hanken Grotesk Variable", system-ui, sans-serif;
@@ -176,4 +181,101 @@ h2 {
 
 #root {
   @apply min-h-dvh;
+}
+
+/* ---------------------------------------------------------------------------
+ * Dark mode
+ *
+ * Global app chrome only: this overrides the CSS-variable palette so the whole
+ * app flips with almost no per-component work, while the unlockable map themes
+ * (Classic / Verdant / Night in cosmetics.ts) keep painting the MAP surface via
+ * their own inline styles. The two live on different layers and don't fight.
+ *
+ * Surfaces + borders flip via variables (so opacity variants follow too). `ink`
+ * is deliberately NOT flipped as a variable, so `bg-ink` chrome and the modal
+ * scrims stay dark; instead the `text-ink` utilities are flipped light below.
+ * ------------------------------------------------------------------------- */
+html.dark {
+  /* Warm, dark parchment surfaces (raised cards sit just above the page). */
+  --color-parchment-50: #26201a;
+  --color-parchment-100: #191410;
+  --color-parchment-200: #352c22;
+  --color-parchment-300: #473c30;
+  --color-surface: #26201a;
+  --color-muted: #a99e8d;
+
+  /* The neutral ramp is used semantically on the question surfaces, so invert it:
+   * slate text reads light, slate fills/borders read dark. */
+  --color-slate-50: #1e1914;
+  --color-slate-100: #272019;
+  --color-slate-200: #352c23;
+  --color-slate-300: #463b30;
+  --color-slate-400: #8a8073;
+  --color-slate-500: #a99e8d;
+  --color-slate-600: #c2b8a7;
+  --color-slate-700: #d8cebd;
+  --color-slate-800: #e9dfce;
+  --color-slate-900: #f4ecdb;
+}
+
+/* The page wash, dark variant. */
+html.dark body {
+  background-color: #191410;
+  background-image: radial-gradient(120% 90% at 50% -10%, #241d15 0%, #191410 55%, #120e0a 100%);
+}
+
+/* Primary text flips to warm light. Done on the `text-ink` UTILITIES (not the
+ * variable) so `bg-ink` / scrims stay dark. Opacity variants are matched too. */
+html.dark .text-ink {
+  color: #f3ead9;
+}
+html.dark .text-ink\/80 {
+  color: color-mix(in oklab, #f3ead9 80%, transparent);
+}
+html.dark .text-ink\/70 {
+  color: color-mix(in oklab, #f3ead9 70%, transparent);
+}
+html.dark .text-ink\/60 {
+  color: color-mix(in oklab, #f3ead9 60%, transparent);
+}
+html.dark .text-ink\/50 {
+  color: color-mix(in oklab, #f3ead9 50%, transparent);
+}
+html.dark .text-ink\/40 {
+  color: color-mix(in oklab, #f3ead9 40%, transparent);
+}
+html.dark .text-ink\/25 {
+  color: color-mix(in oklab, #f3ead9 25%, transparent);
+}
+html.dark .text-ink\/10 {
+  color: color-mix(in oklab, #f3ead9 10%, transparent);
+}
+
+/* Text that rides on the dark chrome bars stays light even though the parchment
+ * SURFACE tokens flipped dark. */
+html.dark .text-parchment-50 {
+  color: #fdf8ec;
+}
+html.dark .text-parchment-100 {
+  color: #f7eed6;
+}
+html.dark .text-parchment-200 {
+  color: #efdfb9;
+}
+
+/* Solid white "islands" inside cards (scale/tile/expression surfaces, etc.)
+ * become a dark surface. Only the solid utility is retargeted, so translucent
+ * `bg-white/10` overlays on the chrome are untouched. */
+html.dark .bg-white {
+  background-color: #2c251d;
+}
+
+/* "Ink on a solid bright accent" (gold buttons/badges/seals). Equals `ink` in
+ * light mode, and stays dark in dark mode so gold fills keep a dark label even
+ * after the text-ink utilities flip light. */
+.text-on-gold {
+  color: var(--color-ink);
+}
+html.dark .text-on-gold {
+  color: #241d16;
 }

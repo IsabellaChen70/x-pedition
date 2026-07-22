@@ -21,7 +21,7 @@ type ConceptCardProps = {
 
 export default function ConceptCard({ step, onContinue, onBack, canGoBack }: ConceptCardProps) {
   return (
-    <div className="rounded-2xl border-2 border-brand-100 bg-brand-50/40 p-5 sm:p-6">
+    <div className="rounded-2xl border-2 border-brand-100 bg-brand-50/40 p-5 sm:p-6 dark:border-brand-900/40 dark:bg-brand-950/30">
       <p className="text-sm font-medium uppercase tracking-wide text-brand-600">Learn</p>
       <h2 className="mt-1 text-xl font-semibold text-slate-900">{step.title}</h2>
       <p className="mt-2 leading-relaxed text-slate-700">{renderPrompt(step.body)}</p>

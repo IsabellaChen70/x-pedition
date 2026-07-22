@@ -7,7 +7,7 @@ const base =
   'inline-flex items-center justify-center font-medium transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'rounded-xl bg-gold-500 text-ink hover:bg-gold-400',
+  primary: 'rounded-xl bg-gold-500 text-on-gold hover:bg-gold-400',
   secondary: 'rounded-xl border-2 border-parchment-300 bg-parchment-50 text-ink hover:border-gold-400',
   outline: 'rounded-xl border-2 border-brand-200 bg-parchment-50 text-brand-700 hover:border-brand-400',
   ghost: 'rounded-lg text-slate-600 hover:bg-slate-100 hover:text-ink',

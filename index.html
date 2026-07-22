@@ -18,6 +18,22 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Apply the saved (or system) dark-mode choice before first paint so the
+      // page never flashes light then dark. Mirrors src/lib/settings.ts.
+      (function () {
+        try {
+          var pref = localStorage.getItem('xp_theme_pref');
+          var systemDark =
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (pref === 'dark' || (pref !== 'light' && systemDark)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {
+          /* localStorage unavailable; fall back to the light default. */
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -119,7 +119,7 @@ function ItemRow({
       </div>
       <div className="shrink-0 text-right">
         {equippedNow ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-gold-400 px-3 py-1 text-xs font-bold text-ink">
+          <span className="inline-flex items-center gap-1 rounded-full bg-gold-400 px-3 py-1 text-xs font-bold text-on-gold">
             <CheckIcon className="h-3.5 w-3.5" />
             Equipped
           </span>

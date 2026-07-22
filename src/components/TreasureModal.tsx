@@ -59,7 +59,7 @@ export default function TreasureModal({ level, totalXp, earnedBadges, onClose }:
                         key={badge.id}
                         className="inline-flex items-center gap-1.5 rounded-full border border-gold-400 bg-gold-300/30 py-1 pl-1.5 pr-3 text-xs font-semibold text-ink shadow-sm"
                       >
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gold-500 text-ink">
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gold-500 text-on-gold">
                           <CheckIcon className="h-2.5 w-2.5" />
                         </span>
                         {badge.label}

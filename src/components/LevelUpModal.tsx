@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { fireConfetti } from '../lib/confetti';
+import { playLevelUp } from '../lib/sound';
 import { Button } from './ui';
 
 type LevelUpModalProps = {
@@ -15,6 +16,7 @@ type LevelUpModalProps = {
 export default function LevelUpModal({ level, spendable, onClose, onOpenShop }: LevelUpModalProps) {
   useEffect(() => {
     fireConfetti();
+    playLevelUp();
   }, []);
 
   return (
@@ -74,7 +76,7 @@ export default function LevelUpModal({ level, spendable, onClose, onOpenShop }: 
 
 function LevelBadge({ level }: { level: number }) {
   return (
-    <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-b from-gold-300 to-gold-500 text-ink shadow-[0_0_18px_rgba(231,165,42,0.6)] ring-4 ring-gold-400/40">
+    <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-b from-gold-300 to-gold-500 text-on-gold shadow-[0_0_18px_rgba(231,165,42,0.6)] ring-4 ring-gold-400/40">
       <StarIcon className="absolute h-16 w-16 text-ink/10" />
       <span className="nums font-display text-2xl font-extrabold leading-none">{level}</span>
     </span>

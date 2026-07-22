@@ -36,7 +36,7 @@ const MASTERY_LABEL: Record<MapStopMastery, string> = {
 const MASTERY_CHIP: Record<MapStopMastery, string> = {
   learning: 'bg-parchment-200 text-ink/70 ring-1 ring-parchment-300',
   practicing: 'bg-brand-600 text-white',
-  mastered: 'bg-gold-400 text-ink ring-1 ring-gold-600/40',
+  mastered: 'bg-gold-400 text-on-gold ring-1 ring-gold-600/40',
 };
 
 export type MapSection = {
@@ -277,7 +277,7 @@ function StopNode({
   const circleColor = isCompleted
     ? 'border-brand-700 bg-brand-600 text-white'
     : isCurrent
-      ? 'border-gold-600 bg-gold-400 text-ink ring-4 ring-gold-200'
+      ? 'border-gold-600 bg-gold-400 text-on-gold ring-4 ring-gold-200'
       : isLocked
         ? 'border-parchment-300 bg-parchment-100 text-ink/40'
         : 'border-brand-300 bg-brand-100 text-brand-800';
@@ -391,7 +391,7 @@ function Treasure({
     <span className="relative flex items-center justify-center">
       <ChestIcon unlocked={unlocked} invite={challengeable && !unlocked} />
       <span className="absolute left-1/2 top-full mt-2 -translate-x-1/2 text-center">
-        <span className="inline-block whitespace-nowrap rounded-full bg-gold-400 px-3 py-0.5 font-display text-sm font-bold text-ink shadow-sm ring-1 ring-gold-600/40">
+        <span className="inline-block whitespace-nowrap rounded-full bg-gold-400 px-3 py-0.5 font-display text-sm font-bold text-on-gold shadow-sm ring-1 ring-gold-600/40">
           {pillLabel}
         </span>
       </span>

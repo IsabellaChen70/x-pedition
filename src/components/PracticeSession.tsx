@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fireConfetti } from '../lib/confetti';
+import { playCelebration } from '../lib/sound';
 import {
   clampDifficulty,
   generateLocalProblem,
@@ -501,6 +502,7 @@ function PracticeRunner({
     const solvedNow = solved;
     if (goal !== null && solvedNow >= goal) {
       fireConfetti();
+      playCelebration();
       persist(true, solvedNow, peakLevel);
       setRevisit(rankConceptMistakes(mistakes.current));
       // Dig complete: record one spaced review per concept and surface the cues.

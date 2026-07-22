@@ -464,14 +464,14 @@ export default function HomePage() {
             className={`font-display text-2xl font-bold sm:text-3xl ${
               mapTheme.dark
                 ? 'text-parchment-50 drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)]'
-                : 'text-ink drop-shadow-[0_1px_2px_rgba(253,248,236,0.9)]'
+                : 'text-[#33261a] drop-shadow-[0_1px_2px_rgba(253,248,236,0.9)]'
             }`}
           >
             Welcome back, {firstName}!
           </h1>
           <p
             className={`mt-1 text-sm font-medium sm:text-base ${
-              mapTheme.dark ? 'text-parchment-200' : 'text-ink/70'
+              mapTheme.dark ? 'text-parchment-200' : 'text-[#4a3a28]'
             }`}
           >
             Ready for today's adventure?
@@ -483,12 +483,12 @@ export default function HomePage() {
                 aria-label={`${resumeVerb}: ${resumeTitle}`}
                 className="inline-flex max-w-full items-center gap-3 rounded-2xl bg-gold-500 px-6 py-3.5 text-left shadow-lg ring-1 ring-gold-600/30 transition duration-200 hover:bg-gold-400 hover:shadow-xl motion-safe:hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100"
               >
-                <PlayIcon className="h-6 w-6 shrink-0 text-ink" />
+                <PlayIcon className="h-6 w-6 shrink-0 text-on-gold" />
                 <span className="min-w-0">
-                  <span className="block font-display text-lg font-bold leading-tight text-ink">
+                  <span className="block font-display text-lg font-bold leading-tight text-on-gold">
                     {resumeVerb}
                   </span>
-                  <span className="block truncate text-sm font-medium text-ink/70">
+                  <span className="block truncate text-sm font-medium text-on-gold opacity-80">
                     {resumeHelper}
                   </span>
                 </span>
@@ -503,7 +503,7 @@ export default function HomePage() {
                   setReviewConcepts(dueConcepts);
                   setShowPractice(true);
                 }}
-                className="inline-flex items-center gap-2 rounded-full bg-gold-400 px-5 py-2.5 text-sm font-bold text-ink shadow-md transition duration-200 hover:bg-gold-300 hover:shadow-lg motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100"
+                className="inline-flex items-center gap-2 rounded-full bg-gold-400 px-5 py-2.5 text-sm font-bold text-on-gold shadow-md transition duration-200 hover:bg-gold-300 hover:shadow-lg motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100"
               >
                 <ShovelIcon className="h-4 w-4" />
                 Daily Treasure Dig

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import LevelModal from './LevelModal';
+import SettingsModal from './SettingsModal';
 
 type AppHeaderProps = {
   level?: number;
@@ -28,6 +29,7 @@ export default function AppHeader({
 }: AppHeaderProps) {
   const showStats = level !== undefined;
   const [showLevel, setShowLevel] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const xpPct =
     xp !== undefined && xpToNext ? Math.min(100, Math.max(0, Math.round((xp / xpToNext) * 100))) : 0;
 
@@ -104,12 +106,21 @@ export default function AppHeader({
               onClick={onAchievements}
               title="Badges"
               aria-label="Badges"
-              className="inline-flex items-center gap-1.5 rounded-full bg-gold-400 px-2.5 py-1.5 text-sm font-bold text-ink shadow-sm transition duration-200 hover:bg-gold-300 motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink sm:px-3.5"
+              className="inline-flex items-center gap-1.5 rounded-full bg-gold-400 px-2.5 py-1.5 text-sm font-bold text-on-gold shadow-sm transition duration-200 hover:bg-gold-300 motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-ink sm:px-3.5"
             >
               <TrophyIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">Badges</span>
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setShowSettings(true)}
+            title="Settings"
+            aria-label="Settings"
+            className="rounded-lg px-2 py-1 text-parchment-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+          >
+            <GearIcon className="h-5 w-5" />
+          </button>
           {onSignOut && (
             <button
               type="button"
@@ -131,7 +142,26 @@ export default function AppHeader({
           onClose={() => setShowLevel(false)}
         />
       )}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </header>
+  );
+}
+
+function GearIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   );
 }
 

@@ -11,8 +11,8 @@ type FeedbackBannerProps = {
 export default function FeedbackBanner({ variant, message }: FeedbackBannerProps) {
   const correct = variant === 'correct';
   const styles = correct
-    ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-    : 'border-amber-200 bg-amber-50 text-amber-950';
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-100'
+    : 'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-100';
 
   return (
     <div
@@ -21,7 +21,9 @@ export default function FeedbackBanner({ variant, message }: FeedbackBannerProps
       aria-live="polite"
     >
       <span
-        className={`mt-0.5 shrink-0 ${correct ? 'text-emerald-600' : 'text-amber-600'}`}
+        className={`mt-0.5 shrink-0 ${
+          correct ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'
+        }`}
         aria-hidden="true"
       >
         {correct ? <CheckIcon /> : <IdeaIcon />}
