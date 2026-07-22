@@ -4,6 +4,7 @@ import AchievementsModal from '../components/AchievementsModal';
 import AppHeader from '../components/AppHeader';
 import BadgeUnlockModal from '../components/BadgeUnlockModal';
 import LevelUpModal from '../components/LevelUpModal';
+import ReviewDeck from '../components/ReviewDeck';
 import ShopModal from '../components/ShopModal';
 import TreasureMap from '../components/TreasureMap';
 import type { MapSection, MapStop } from '../components/TreasureMap';
@@ -30,12 +31,14 @@ import {
   purchaseCosmetic,
   recordFinalChallengePassed,
   resetCourseProgress,
+  resolveMistake,
   setDevDayOffset,
   shouldCelebrateLevel,
   shouldCelebrateStreak,
   todayKey,
 } from '../lib/progress';
 import type { CourseProgress } from '../lib/progress';
+import { removeMistakeFromLog } from '../lib/mistakes';
 import { earnedXp, levelForXp, spendableXp, XP_PER_LEVEL, xpIntoLevel } from '../lib/xp';
 
 const PracticeSession = lazy(() => import('../components/PracticeSession'));
@@ -62,6 +65,7 @@ export default function HomePage() {
   const [reviewConcepts, setReviewConcepts] = useState<ConceptId[]>([]);
   const [showFinalChallenge, setShowFinalChallenge] = useState(false);
   const [showShop, setShowShop] = useState(false);
+  const [showReviewDeck, setShowReviewDeck] = useState(false);
   const [celebrateStreak, setCelebrateStreak] = useState(false);
   const [celebrationQueue, setCelebrationQueue] = useState<Celebration[]>([]);
   const badgeCelebrationShown = useRef(false);
@@ -72,6 +76,7 @@ export default function HomePage() {
   const practiceDigs = progress?.practice.digsCompleted ?? 0;
   const practiceBestLevel = progress?.practice.bestLevel ?? 0;
   const reflectionsCompleted = progress?.reflectionsCompleted ?? 0;
+  const mistakes = progress?.mistakeLog ?? [];
   // The home "Daily Treasure Dig" reviews skills up to the furthest lesson the
   // learner has completed; a new learner falls back to the first lesson.
   const practiceLessonId =
@@ -184,6 +189,17 @@ export default function HomePage() {
     const nextCosmetics = applyEquip(cosmetics, cosmetic);
     setProgress((prev) => (prev ? { ...prev, cosmetics: nextCosmetics } : prev));
     void equipCosmetic(user.uid, course.id, cosmetic.slot, cosmetic.id);
+  };
+
+  // Clear a reviewed mistake: drop it locally right away, then persist additively.
+  const handleResolveMistake = (id: string) => {
+    if (!user) {
+      return;
+    }
+    setProgress((prev) =>
+      prev ? { ...prev, mistakeLog: removeMistakeFromLog(prev.mistakeLog, id) } : prev,
+    );
+    void resolveMistake(user.uid, course.id, id);
   };
 
   // Quietly re-read progress after a dig/review so the Skill Map and Daily Review
@@ -437,24 +453,39 @@ export default function HomePage() {
           >
             Ready for today's adventure?
           </p>
-          {isPracticeEnabled() && practiceLessonId && (
-            <button
-              type="button"
-              onClick={() => {
-                setReviewConcepts(dueConcepts);
-                setShowPractice(true);
-              }}
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-gold-400 px-5 py-2.5 text-sm font-bold text-ink shadow-md transition duration-200 hover:bg-gold-300 hover:shadow-lg motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100"
-            >
-              <ShovelIcon className="h-4 w-4" />
-              Daily Treasure Dig
-              {dueConcepts.length > 0 && (
-                <span className="rounded-full bg-ink/15 px-2 py-0.5 text-xs font-bold">
-                  {dueConcepts.length} due
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            {isPracticeEnabled() && practiceLessonId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setReviewConcepts(dueConcepts);
+                  setShowPractice(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-full bg-gold-400 px-5 py-2.5 text-sm font-bold text-ink shadow-md transition duration-200 hover:bg-gold-300 hover:shadow-lg motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100"
+              >
+                <ShovelIcon className="h-4 w-4" />
+                Daily Treasure Dig
+                {dueConcepts.length > 0 && (
+                  <span className="rounded-full bg-ink/15 px-2 py-0.5 text-xs font-bold">
+                    {dueConcepts.length} due
+                  </span>
+                )}
+              </button>
+            )}
+            {mistakes.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowReviewDeck(true)}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-brand-200 bg-parchment-50 px-5 py-2.5 text-sm font-bold text-brand-700 shadow-sm transition duration-200 hover:border-brand-400 hover:shadow-md motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100"
+              >
+                <BookIcon className="h-4 w-4" />
+                Review deck
+                <span className="nums rounded-full bg-brand-100 px-2 py-0.5 text-xs font-bold text-brand-800">
+                  {mistakes.length}
                 </span>
-              )}
-            </button>
-          )}
+              </button>
+            )}
+          </div>
         </div>
 
         {user && progress && (
@@ -534,6 +565,18 @@ export default function HomePage() {
         />
       )}
 
+      {showReviewDeck && user && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 p-4">
+          <div className="mx-auto mt-8 max-w-2xl">
+            <ReviewDeck
+              mistakes={mistakes}
+              onResolve={handleResolveMistake}
+              onClose={() => setShowReviewDeck(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {showShop && progress && (
         <ShopModal
           spendable={spendable}
@@ -608,6 +651,24 @@ function ShovelIcon({ className }: { className?: string }) {
       <path d="M10 2.5h4v2.2h-4z" />
       <path d="M11 3.5h2v8.5h-2z" />
       <path d="M7.8 11.5h8.4l-1.7 5.3a2.5 2.5 0 0 1-5 0z" />
+    </svg>
+  );
+}
+
+function BookIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" />
+      <path d="M19 17H6a2 2 0 0 0-2 2" />
     </svg>
   );
 }
