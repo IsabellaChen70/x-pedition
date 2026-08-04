@@ -16,9 +16,10 @@ export const auth = getAuth(firebaseApp);
 // Region must match the deployed callable (functions/index.js → us-central1).
 export const functions = getFunctions(firebaseApp, 'us-central1');
 
-// App Check protects the AI Logic / Gemini quota from abuse. It is required to
-// use AI in production, so it loads only when a reCAPTCHA Enterprise site key is
-// configured (lazy import keeps it out of the bundle when AI is off).
+// App Check protects the callable functions and Firestore from abuse. It loads
+// only when a reCAPTCHA v3 site key is configured (lazy import keeps it out of the
+// bundle otherwise). reCAPTCHA v3 stays within the free tier, unlike the
+// Enterprise provider, which pulls toward billing.
 //
 // In local dev it also turns on the App Check debug provider, which prints a
 // debug token to the browser console. Register that token in the Firebase console
@@ -29,9 +30,9 @@ if (typeof window !== 'undefined' && import.meta.env.VITE_RECAPTCHA_SITE_KEY) {
     (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean | string }).FIREBASE_APPCHECK_DEBUG_TOKEN =
       true;
   }
-  void import('firebase/app-check').then(({ initializeAppCheck, ReCaptchaEnterpriseProvider }) => {
+  void import('firebase/app-check').then(({ initializeAppCheck, ReCaptchaV3Provider }) => {
     initializeAppCheck(firebaseApp, {
-      provider: new ReCaptchaEnterpriseProvider(import.meta.env.VITE_RECAPTCHA_SITE_KEY as string),
+      provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY as string),
       isTokenAutoRefreshEnabled: true,
     });
   });
