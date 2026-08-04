@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import mapBg from '../assets/map-bg.jpg';
+import mapBg from '../assets/map-bg.webp';
 import Avatar from './Avatar';
 import { Button } from './ui';
 import {

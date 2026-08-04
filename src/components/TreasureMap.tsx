@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import mapBg from '../assets/map-bg.jpg';
+import mapBg from '../assets/map-bg.webp';
 import Avatar from './Avatar';
 import Chest from './Chest';
 import { resolveMapTheme } from '../lib/cosmetics';

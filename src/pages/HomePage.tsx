@@ -12,7 +12,7 @@ import TreasureMap from '../components/TreasureMap';
 import type { MapSection, MapStop } from '../components/TreasureMap';
 import TreasureModal from '../components/TreasureModal';
 import { Alert, Button } from '../components/ui';
-import mapBg from '../assets/map-bg.jpg';
+import mapBg from '../assets/map-bg.webp';
 import { isPracticeEnabled } from '../lib/ai/config';
 import { conceptForLesson, lessonForConcept } from '../lib/ai/concepts';
 import { getDueConcepts, skillState } from '../lib/ai/srs';
