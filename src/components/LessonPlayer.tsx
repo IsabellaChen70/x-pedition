@@ -121,7 +121,8 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
       try {
         setProgressError(null);
         await saveLessonProgress(userId, courseId, lesson.id, snapshot);
-      } catch {
+      } catch (saveError) {
+        console.error('Save lesson progress failed:', saveError);
         setProgressError('Progress is not saving right now. You can keep working, but refresh may lose your place.');
       }
     },
@@ -139,8 +140,9 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
           snapshot,
           nextLesson?.id ?? null,
         );
-      } catch {
-        setProgressError('Lesson finished locally, but progress did not save. Check Firestore setup.');
+      } catch (completeError) {
+        console.error('Complete lesson progress failed:', completeError);
+        setProgressError('Your lesson is finished, but saving did not go through. Check your connection; your place is kept on this device.');
       }
     },
     [courseId, lesson.id, nextLesson?.id, userId],
@@ -181,9 +183,10 @@ export default function LessonPlayer({ lesson, userId, courseId, firstLessonId }
           setReviewMode(false);
           setAnswerHistory({});
         }
-      } catch {
+      } catch (loadError) {
+        console.error('Load lesson progress failed:', loadError);
         if (active) {
-          setProgressError('Could not load saved progress. Make sure Firestore is enabled.');
+          setProgressError('We could not load your saved progress. Check your connection and refresh.');
         }
       } finally {
         if (active) {

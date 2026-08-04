@@ -110,6 +110,14 @@ export default function HomePage() {
   const totalXp = earnedXp({ completedCount, masteryCorrect, practiceSolved, reflectionsCompleted });
   const level = levelForXp(totalXp);
 
+  // A first-time visitor (nothing earned, started, or streaked yet) gets a short
+  // orientation instead of "Welcome back", so the map is never unexplained.
+  const hasProgress =
+    completedCount > 0 ||
+    streakCount > 0 ||
+    totalXp > 0 ||
+    Object.keys(progress?.lessons ?? {}).length > 0;
+
   // Shop state drives the spendable wallet (earned minus spent) and the applied
   // cosmetics. Buying moves the wallet, never the earned total, so the level and
   // its bar are untouched. Absent progress falls back to the default look.
@@ -272,9 +280,10 @@ export default function HomePage() {
             }
           });
         }
-      } catch {
+      } catch (loadError) {
+        console.error('Progress load failed:', loadError);
         if (active) {
-          setProgressError('Could not load saved progress. Make sure Firestore is enabled.');
+          setProgressError('We could not load your saved progress. Check your connection and refresh.');
         }
       } finally {
         if (active) {
@@ -467,14 +476,16 @@ export default function HomePage() {
                 : 'text-[#33261a] drop-shadow-[0_1px_2px_rgba(253,248,236,0.9)]'
             }`}
           >
-            Welcome back, {firstName}!
+            {hasProgress ? `Welcome back, ${firstName}!` : `Welcome, ${firstName}!`}
           </h1>
           <p
             className={`mt-1 text-sm font-medium sm:text-base ${
               mapTheme.dark ? 'text-parchment-200' : 'text-[#4a3a28]'
             }`}
           >
-            Ready for today's adventure?
+            {hasProgress
+              ? "Ready for today's adventure?"
+              : 'This map is your algebra course. Start at the first stop and follow the trail.'}
           </p>
           {resumeTarget && (
             <div className="mt-5 flex justify-center">
@@ -514,19 +525,19 @@ export default function HomePage() {
                 )}
               </button>
             )}
-            {mistakes.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowReviewDeck(true)}
-                className="inline-flex items-center gap-2 rounded-full border-2 border-brand-200 bg-parchment-50 px-5 py-2.5 text-sm font-bold text-brand-700 shadow-sm transition duration-200 hover:border-brand-400 hover:shadow-md motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100"
-              >
-                <BookIcon className="h-4 w-4" />
-                Review deck
+            <button
+              type="button"
+              onClick={() => setShowReviewDeck(true)}
+              className="inline-flex items-center gap-2 rounded-full border-2 border-brand-200 bg-parchment-50 px-5 py-2.5 text-sm font-bold text-brand-700 shadow-sm transition duration-200 hover:border-brand-400 hover:shadow-md motion-safe:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100"
+            >
+              <BookIcon className="h-4 w-4" />
+              Review deck
+              {mistakes.length > 0 && (
                 <span className="nums rounded-full bg-brand-100 px-2 py-0.5 text-xs font-bold text-brand-800">
                   {mistakes.length}
                 </span>
-              </button>
-            )}
+              )}
+            </button>
           </div>
         </div>
 
