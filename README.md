@@ -19,20 +19,16 @@ The part I care most about is how it handles AI. X-pedition is deterministic-fir
 
 The live app is at **[x-pedition.web.app](https://x-pedition.web.app)**.
 
-**Fastest path: Continue as guest.** The sign-in screen has a **Continue as guest** button that starts an anonymous Firebase session, so you land straight in the app with your own throwaway progress. Nothing to fill in.
+**Fastest path: Continue as guest.** The sign-in screen has a **Continue as guest** button that starts an anonymous session, so you land straight in the app with your own throwaway progress, nothing to fill in. If guest sessions are unavailable, the same screen still offers a demo login and account sign-up, so the first tap never dead-ends.
 
-> **One manual step for the owner:** the guest button needs the **Anonymous** provider turned on. In the [Firebase console](https://console.firebase.google.com/) go to **Authentication → Sign-in method → Anonymous → Enable**. Until that toggle is on, the button shows a short message pointing to the fallback below.
-
-**Fallback demo login.** If guest access is not enabled yet, use the demo account on the same screen:
-
-- Email: `demo@x-pedition.app`
-- Password: `xpedition-demo`
-
-> **Owner setup for the fallback:** create that account once through **Create account** on the sign-in screen (or in the Firebase console) so the credentials work. Any other email and password you enter via **Create account** also works right now, with no owner setup, since email/password sign-in is already enabled.
+**See a populated account:** tap **Try the demo** on the sign-in screen to load a demo learner that already has a streak, XP, and completed lessons. You can also create your own account with any email and password to keep progress across devices.
 
 ## See it
 
-> These images are placeholders. The owner needs to capture and commit the files listed in [`docs/screenshots/`](docs/screenshots/). The paths below render as soon as the files exist, with no further edits.
+The quickest look is the [live app](https://x-pedition.web.app). Short captures of the three core interactions belong here; the embeds are staged below and stay commented out until the files land in [`docs/screenshots/`](docs/screenshots/), so nothing renders broken in the meantime.
+
+<!-- TODO(screenshots): capture the three files into docs/screenshots/ (see that folder's
+     README for guidance and exact filenames), then uncomment the embeds below.
 
 Balance scale (remove the same weight from both pans, and the scale rebalances live):
 
@@ -45,6 +41,7 @@ Tile sorting (group like terms into the combine box):
 Home treasure map (course path with streak, XP, and level):
 
 ![Treasure-map home](docs/screenshots/treasure-map.png)
+-->
 
 ## Deterministic-first AI
 
@@ -91,7 +88,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-In the Firebase console, enable **Firestore Database** and publish the rules in `firestore.rules`. For the guest button, also enable the **Anonymous** sign-in provider (see [Try it](#try-it)). Firebase Hosting is configured in `firebase.json` with a rewrite to `index.html` for React Router.
+In the Firebase console, enable **Firestore Database** and publish the rules in `firestore.rules`. Under **Authentication → Sign-in method**, enable **Anonymous** (for the guest button) and **Email/Password**. Firebase Hosting is configured in `firebase.json` with a rewrite to `index.html` for React Router.
 
 ## Scripts
 

@@ -1,9 +1,9 @@
 # Screenshots
 
-The main [`README.md`](../../README.md) embeds the images below. They are
-placeholders until the owner captures and commits the real media. Filenames are
-fixed, so dropping the files in here (same names) makes the README render with no
-further edits.
+The main [`README.md`](../../README.md) stages the embeds below but keeps them
+commented out until the real media lands here, so the README never shows broken
+images. Filenames are fixed: drop the files in with the same names, then
+uncomment the three embeds in the README's "See it" section.
 
 | File | What to capture | Suggested format |
 |------|-----------------|------------------|
