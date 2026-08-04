@@ -153,6 +153,8 @@ export default function TileCombineQuestion({
                 type="button"
                 draggable={!submitted}
                 disabled={submitted}
+                aria-pressed={selectedTileId === tile.id}
+                aria-label={`Select ${tile.label} tile`}
                 className={`${chipClasses(tile.kind, selectedTileId === tile.id)} cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 touch-manipulation`}
                 onClick={() => setSelectedTileId((id) => (id === tile.id ? null : tile.id))}
                 onDragStart={() => setDraggingTileId(tile.id)}
@@ -190,7 +192,7 @@ export default function TileCombineQuestion({
                 />
               ))
             ) : (
-              <p className="text-sm text-muted">Drop the {tileLabel} tiles here to combine them.</p>
+              <p className="text-sm text-muted">Drag or tap the {tileLabel} tiles to combine them here.</p>
             )}
           </DropZone>
 
@@ -223,7 +225,7 @@ export default function TileCombineQuestion({
                     />
                   ))
                 ) : (
-                  <p className="text-sm text-muted">Drop the plain number here.</p>
+                  <p className="text-sm text-muted">Drag or tap the plain number here.</p>
                 )}
               </DropZone>
             </>
@@ -231,7 +233,11 @@ export default function TileCombineQuestion({
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-center">
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-center"
+      >
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Simplified</p>
         <p className="nums mt-1 text-2xl font-semibold text-slate-900">{expression}</p>
       </div>
@@ -350,7 +356,7 @@ function PlacedChip({
       {tile.label}
       <span
         aria-hidden="true"
-        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-[11px] leading-none text-white opacity-0 transition group-hover/chip:opacity-100"
+        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-[11px] leading-none text-white opacity-100 transition [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/chip:opacity-100"
       >
         &times;
       </span>

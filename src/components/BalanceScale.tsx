@@ -65,7 +65,7 @@ export default function BalanceScale({
         viewBox={viewBox}
         className="h-auto w-full"
         role="img"
-        aria-label="Balance scale"
+        aria-label={`Balance scale: left pan holds ${describeSide(config.left)}; right pan holds ${describeSide(config.right)}`}
       >
         {/* Stand */}
         <rect x="172" y="150" width="16" height="60" rx="4" fill="#8a5a34" />

@@ -139,7 +139,7 @@ export default function ExpressionBuilderQuestion({
                     {value}
                     <span
                       aria-hidden="true"
-                      className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-[11px] leading-none text-white opacity-0 transition group-hover/token:opacity-100"
+                      className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-[11px] leading-none text-white opacity-100 transition [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/token:opacity-100"
                     >
                       &times;
                     </span>
