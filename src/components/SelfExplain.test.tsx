@@ -43,9 +43,12 @@ describe('SelfExplain with AI off', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
-    // The authored "what if" appears even though the judge returned nothing.
-    await waitFor(() =>
-      expect(screen.getByText('What if it were x + 5 = 7?')).toBeInTheDocument(),
+    // The authored "what if" appears even though the judge returned nothing. Use a
+    // generous timeout so a cold first run (fresh transforms after npm ci in CI)
+    // doesn't flake on the default 1s.
+    await waitFor(
+      () => expect(screen.getByText('What if it were x + 5 = 7?')).toBeInTheDocument(),
+      { timeout: 5000 },
     );
     expect(recordReflection).toHaveBeenCalled();
   });
