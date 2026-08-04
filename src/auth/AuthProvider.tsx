@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
   GoogleAuthProvider,
+  linkWithCredential,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInAnonymously,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -49,6 +52,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       signInAsGuest: async () => {
         await signInAnonymously(auth);
+      },
+      linkEmailPassword: async (displayName, email, password) => {
+        const current = auth.currentUser;
+        if (!current || !current.isAnonymous) {
+          throw new Error('No guest session to save.');
+        }
+        const trimmedName = displayName.trim();
+        if (trimmedName.length === 0 || trimmedName.length > 30) {
+          throw new Error('Display name must be 1-30 characters.');
+        }
+        // linkWithCredential keeps the same uid, so every /users/{uid} progress
+        // doc the guest already wrote stays theirs, now behind a real login.
+        const credential = EmailAuthProvider.credential(email, password);
+        await linkWithCredential(current, credential);
+        await updateProfile(current, { displayName: trimmedName });
+        setUser(auth.currentUser);
+      },
+      resetPassword: async (email) => {
+        await sendPasswordResetEmail(auth, email);
       },
       signOut: async () => {
         await firebaseSignOut(auth);

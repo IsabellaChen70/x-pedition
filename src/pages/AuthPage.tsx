@@ -5,9 +5,21 @@ import { useAuth } from '../auth/auth-context';
 import { getAuthErrorMessage } from '../lib/auth-errors';
 import { Alert, Button, Input } from '../components/ui';
 
+// A prefilled demo account so a reviewer can see a populated app in one tap. The
+// account itself is created once in the Firebase project (see README "Try it").
+const DEMO_EMAIL = 'demo@x-pedition.app';
+const DEMO_PASSWORD = 'xpedition-demo';
+
 export default function AuthPage() {
-  const { user, loading, signInWithEmail, signInWithGoogle, signInAsGuest, signUpWithEmail } =
-    useAuth();
+  const {
+    user,
+    loading,
+    signInWithEmail,
+    signInWithGoogle,
+    signInAsGuest,
+    signUpWithEmail,
+    resetPassword,
+  } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/';
@@ -18,6 +30,8 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [guestError, setGuestError] = useState('');
+  const [demoError, setDemoError] = useState('');
+  const [info, setInfo] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -29,6 +43,9 @@ export default function AuthPage() {
   const handleEmailSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
+    setInfo('');
+    setGuestError('');
+    setDemoError('');
 
     const trimmedName = displayName.trim();
     if (mode === 'sign-up' && (trimmedName.length === 0 || trimmedName.length > 30)) {
@@ -54,6 +71,9 @@ export default function AuthPage() {
 
   const handleGoogleSignIn = async () => {
     setError('');
+    setInfo('');
+    setGuestError('');
+    setDemoError('');
     try {
       setSubmitting(true);
       await signInWithGoogle();
@@ -68,7 +88,9 @@ export default function AuthPage() {
 
   const handleGuestSignIn = async () => {
     setGuestError('');
+    setDemoError('');
     setError('');
+    setInfo('');
     try {
       setSubmitting(true);
       await signInAsGuest();
@@ -79,15 +101,55 @@ export default function AuthPage() {
         typeof authError === 'object' && authError !== null && 'code' in authError
           ? String((authError as { code: unknown }).code)
           : '';
-      // Anonymous sign-in fails with these codes until the provider is enabled in
-      // the Firebase console, so point the owner at the fix instead of a generic error.
+      // If guest sessions are off, keep the learner in-screen: the demo button and
+      // the account form right below are both working fallbacks, so no dead end.
       if (code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation') {
         setGuestError(
-          'Guest access is not turned on yet. Enable Anonymous sign-in in the Firebase console, or sign in with an account below.',
+          'Guest sign-in is not available right now. Try the demo account, or make your own below to jump in.',
         );
       } else {
         setGuestError(getAuthErrorMessage(authError));
       }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDemoSignIn = async () => {
+    setGuestError('');
+    setDemoError('');
+    setError('');
+    setInfo('');
+    try {
+      setSubmitting(true);
+      await signInWithEmail(DEMO_EMAIL, DEMO_PASSWORD);
+      navigate(from, { replace: true });
+    } catch (authError) {
+      console.error('Demo sign-in error:', authError);
+      setDemoError(
+        'The demo account is not reachable right now. Continue as a guest, or create your own account below.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setInfo('');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError('Enter your email above, then tap "Forgot password?" to get a reset link.');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await resetPassword(trimmedEmail);
+      // Neutral wording so the form never discloses whether an email is registered.
+      setInfo(`If an account exists for ${trimmedEmail}, a password reset link is on its way.`);
+    } catch (authError) {
+      console.error('Password reset error:', authError);
+      setError(getAuthErrorMessage(authError));
     } finally {
       setSubmitting(false);
     }
@@ -105,18 +167,33 @@ export default function AuthPage() {
         Jump straight in as a guest, or sign in to keep your progress across devices.
       </p>
 
-      <div className="mt-8">
-        <Button fullWidth disabled={submitting} onClick={handleGuestSignIn}>
-          Continue as guest
-        </Button>
-        <p className="mt-2 text-center text-xs text-muted">
-          Explore the whole app right away with a throwaway account. No email needed.
-        </p>
-        {guestError && (
-          <Alert variant="error" className="mt-3">
-            {guestError}
-          </Alert>
-        )}
+      <div className="mt-8 space-y-4">
+        <div>
+          <Button fullWidth disabled={submitting} onClick={handleGuestSignIn}>
+            Continue as guest
+          </Button>
+          <p className="mt-2 text-center text-xs text-muted">
+            Explore the whole app right away with a throwaway account. No email needed.
+          </p>
+          {guestError && (
+            <Alert variant="error" className="mt-3">
+              {guestError}
+            </Alert>
+          )}
+        </div>
+        <div>
+          <Button variant="secondary" fullWidth disabled={submitting} onClick={handleDemoSignIn}>
+            Try the demo
+          </Button>
+          <p className="mt-2 text-center text-xs text-muted">
+            Sign in to a ready-made account with a streak, XP, and finished lessons.
+          </p>
+          {demoError && (
+            <Alert variant="error" className="mt-3">
+              {demoError}
+            </Alert>
+          )}
+        </div>
       </div>
 
       <div className="my-6 flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-muted">
@@ -168,9 +245,28 @@ export default function AuthPage() {
           />
         </label>
 
+        {mode === 'sign-in' && (
+          <div className="mt-2 text-right">
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => void handleForgotPassword()}
+              className="text-xs font-medium text-brand-600 underline-offset-2 hover:underline disabled:opacity-50"
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
+
         {error && (
           <Alert variant="error" className="mt-4">
             {error}
+          </Alert>
+        )}
+
+        {info && (
+          <Alert variant="info" className="mt-4">
+            {info}
           </Alert>
         )}
 
@@ -196,6 +292,9 @@ export default function AuthPage() {
           className="font-medium text-brand-600 underline-offset-2 hover:underline"
           onClick={() => {
             setError('');
+            setInfo('');
+            setGuestError('');
+            setDemoError('');
             setMode((currentMode) => (currentMode === 'sign-up' ? 'sign-in' : 'sign-up'));
           }}
         >

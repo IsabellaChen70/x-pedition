@@ -9,6 +9,14 @@ export type AuthContextValue = {
   signInWithGoogle: () => Promise<void>;
   /** Anonymous sign-in for a throwaway demo session (no email/password). */
   signInAsGuest: () => Promise<void>;
+  /**
+   * Upgrade the current anonymous (guest) session to a permanent email/password
+   * account. Uses linkWithCredential, so the uid is preserved and all saved
+   * progress carries over. Throws if there is no anonymous user to upgrade.
+   */
+  linkEmailPassword: (displayName: string, email: string, password: string) => Promise<void>;
+  /** Send a password-reset email so a returning account holder can get back in. */
+  resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
