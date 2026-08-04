@@ -103,6 +103,12 @@ In the Firebase console, enable **Firestore Database** and publish the rules in 
 | `npm run deploy:hosting` | Build and deploy Firebase Hosting |
 | `npm run deploy:firebase` | Build, deploy Hosting, and publish Firestore rules |
 
+Deploy with `npm run deploy:hosting` (or `npm run deploy:firebase` to also publish
+Firestore rules). Both are safe on the free Spark plan. Avoid a bare
+`firebase deploy`: it also tries to deploy the Cloud Functions, which require the
+Blaze plan, so it fails on Spark. The app runs fully with AI off, so a
+Hosting-only deploy is the normal path.
+
 ## Architecture
 
 ```
