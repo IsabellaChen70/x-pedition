@@ -11,8 +11,12 @@ export default defineConfig({
     watch: { usePolling: true },
   },
   test: {
+    // Node by default (the bulk of the suite is pure logic); component tests opt
+    // into jsdom with a `// @vitest-environment jsdom` docblock at the top of the
+    // file, so they get a DOM without slowing the logic tests down.
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
+    setupFiles: ['src/test/setup.ts'],
   },
   build: {
     chunkSizeWarningLimit: 800,

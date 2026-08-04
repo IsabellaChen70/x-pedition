@@ -142,6 +142,9 @@ describe('user flow: complete every lesson (wrong then right)', () => {
       // Mastery reflect moments (Q2 & Q3) carry authored follow-up twists.
       for (const index of [1, 2]) {
         const m = lesson.phases.mastery[index];
+        if (m.type === 'concept') {
+          throw new Error(`${id} mastery ${index + 1} should be a question step, not a concept`);
+        }
         expect(m.followUp?.prompt.trim(), `${id} m${index + 1} followUp`).toBeTruthy();
         expect(m.followUp?.answer.trim()).toBeTruthy();
         expect(m.followUp?.why.trim()).toBeTruthy();
@@ -290,7 +293,7 @@ describe('user flow: random learner sessions (multi-round)', () => {
       for (const step of lesson.phases.mastery) {
         simulateScoredStep(step);
         if (step.type !== 'concept') {
-          detectMisconception(step, { kind: 'mc', index: wrongMcIndex(step as McStep) });
+          detectMisconception(step, { type: 'mc', selectedIndex: wrongMcIndex(step as McStep) });
         }
       }
     }
