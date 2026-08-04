@@ -6,6 +6,7 @@ import AppHeader from '../components/AppHeader';
 import BadgeUnlockModal from '../components/BadgeUnlockModal';
 import LevelUpModal from '../components/LevelUpModal';
 import ReviewDeck from '../components/ReviewDeck';
+import SaveProgressModal from '../components/SaveProgressModal';
 import ShopModal from '../components/ShopModal';
 import TreasureMap from '../components/TreasureMap';
 import type { MapSection, MapStop } from '../components/TreasureMap';
@@ -68,6 +69,10 @@ export default function HomePage() {
   const [showFinalChallenge, setShowFinalChallenge] = useState(false);
   const [showShop, setShowShop] = useState(false);
   const [showReviewDeck, setShowReviewDeck] = useState(false);
+  const [showSaveProgress, setShowSaveProgress] = useState(false);
+  // Set once a guest links a real account, so the banner drops immediately even
+  // if the reused User object doesn't change reference on link.
+  const [savedProgress, setSavedProgress] = useState(false);
   const [celebrateStreak, setCelebrateStreak] = useState(false);
   const [celebrationQueue, setCelebrationQueue] = useState<Celebration[]>([]);
   const badgeCelebrationShown = useRef(false);
@@ -539,6 +544,18 @@ export default function HomePage() {
               )}
             </button>
           </div>
+
+          {user?.isAnonymous && !savedProgress && (
+            <div className="mx-auto mt-5 flex max-w-md flex-col items-center gap-2 rounded-2xl border border-parchment-300 bg-parchment-50/90 px-4 py-3 shadow-sm sm:flex-row sm:justify-between sm:text-left">
+              <p className="text-sm text-ink">
+                <span className="font-semibold">Exploring as a guest.</span> Your progress
+                is saved on this device. Add a login to keep it and resume anywhere.
+              </p>
+              <Button size="sm" className="shrink-0" onClick={() => setShowSaveProgress(true)}>
+                Save my progress
+              </Button>
+            </div>
+          )}
         </div>
 
         {user && progress && (
@@ -628,6 +645,13 @@ export default function HomePage() {
             />
           </div>
         </div>
+      )}
+
+      {showSaveProgress && (
+        <SaveProgressModal
+          onClose={() => setShowSaveProgress(false)}
+          onSaved={() => setSavedProgress(true)}
+        />
       )}
 
       {showShop && progress && (
