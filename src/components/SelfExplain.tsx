@@ -157,7 +157,11 @@ export default function SelfExplain({
           {message}
         </p>
         <p className="mt-2 text-sm font-semibold text-gold-700">+{XP_PER_REFLECTION} XP</p>
-        {accepted && followUp && (
+        {/* The authored "what if" follow-up hinges on the learner writing a genuine
+            explanation, not on the AI judge, so it still appears with AI off (the
+            production default). It only holds back while the learner is being asked
+            to revise a weak explanation (needsRetry). */}
+        {!needsRetry && followUp && (
           <div className="mt-4 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 dark:border-brand-900/50 dark:bg-brand-950/40">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-semibold text-brand-800">One more to think about</p>
