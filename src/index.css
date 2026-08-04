@@ -167,6 +167,15 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* background-attachment: fixed is unreliable and can jank on mobile Safari, so
+   fall back to normal scroll on touch/coarse-pointer devices. The wash is a
+   subtle gradient, so the difference is imperceptible. */
+@media (hover: none) {
+  body {
+    background-attachment: scroll;
+  }
+}
+
 /* Big headings and the wordmark use the rounded display font. */
 h1,
 h2 {

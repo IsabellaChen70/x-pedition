@@ -5,16 +5,26 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="X-pedition: learn algebra by doing" />
+
+    <!-- Warm up the TLS connections to Firebase Auth and Firestore so the first
+         sign-in and progress read start sooner. -->
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+
     <title>X-pedition</title>
 
+    <!-- Absolute OG/Twitter URLs so link scrapers resolve them (relative paths do
+         not render a card). Update the host below when the app moves to its new
+         Firebase site ID. -->
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://x-pedition.web.app/" />
     <meta property="og:title" content="X-pedition" />
     <meta property="og:description" content="Learn algebra by doing, a treasure-hunt adventure." />
-    <meta property="og:image" content="/og-image.jpg" />
+    <meta property="og:image" content="https://x-pedition.web.app/og-image.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="X-pedition" />
     <meta name="twitter:description" content="Learn algebra by doing, a treasure-hunt adventure." />
-    <meta name="twitter:image" content="/og-image.jpg" />
+    <meta name="twitter:image" content="https://x-pedition.web.app/og-image.jpg" />
   </head>
   <body>
     <div id="root"></div>
