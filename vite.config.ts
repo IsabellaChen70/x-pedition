@@ -15,7 +15,7 @@ export default defineConfig({
     // into jsdom with a `// @vitest-environment jsdom` docblock at the top of the
     // file, so they get a DOM without slowing the logic tests down.
     environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'functions/**/*.test.mjs'],
     setupFiles: ['src/test/setup.ts'],
   },
   build: {
